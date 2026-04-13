@@ -25,7 +25,7 @@
             <p class="text-muted mb-4">Status iuran keanggotaan.</p>
             <a href="#" class="btn btn-outline w-full">Detail Finansial</a>
         </div>
-        <div class="card p-4 glass text-center" style="background: linear-gradient(135deg, rgba(var(--primary-h), var(--primary-s), var(--primary-l), 0.1), rgba(var(--secondary-h), var(--secondary-s), var(--secondary-l), 0.1));">
+        <div class="card p-4 glass text-center" style="background: linear-gradient(135deg, hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.1), hsla(var(--secondary-h), var(--secondary-s), var(--secondary-l), 0.1));">
             <h3>Kartu Anggota</h3>
             <p class="text-muted mb-4">Unduh ID Digital Anda.</p>
             <a href="#" class="btn btn-primary w-full">Kartu Saya</a>
