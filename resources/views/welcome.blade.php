@@ -1,13 +1,16 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="hero">
-    <div class="container animate-fade-in">
-        <h1 class="text-4xl mb-4">Selamat Datang di<br><span class="navbar-brand">Jostru Community</span></h1>
-        <p>Wadah kreativitas, diskusi, dan perkembangan bersama. Bergabunglah dengan kami sekarang juga!</p>
-        <div class="flex justify-center gap-4 mt-4">
-            <a href="{{ route('register') }}" class="btn btn-primary">Gabung Sekarang</a>
-            <a href="#tentang" class="btn btn-outline">Pelajari Lebih Lanjut</a>
+<div class="hero" style="min-height: 80vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(var(--primary-h), var(--primary-s), var(--primary-l), 0.1) 0%, transparent 70%);">
+    <div class="container animate-fade-in text-center">
+        <div style="display: inline-block; padding: 5px 15px; border-radius: 20px; background: rgba(var(--primary-h), var(--primary-s), var(--primary-l), 0.1); color: var(--primary); font-weight: 600; margin-bottom: 20px; font-size: 0.9rem; letter-spacing: 1px;">
+            PLATFORM KOMUNITAS DIGITAL
+        </div>
+        <h1 class="text-5xl mb-4" style="line-height: 1.2;">Selamat Datang di<br><span class="navbar-brand" style="font-size: inherit;">Jostru Community</span></h1>
+        <p style="font-size: 1.25rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto 2.5rem; line-height: 1.6;">Wadah kreativitas, diskusi, dan perkembangan bersama. Tingkatkan koneksi dan kolaborasi dengan bergabung bersama kami sekarang juga!</p>
+        <div class="flex justify-center gap-4 mt-4" style="flex-wrap: wrap;">
+            <a href="{{ route('register') }}" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem; border-radius: 30px;">Gabung Sekarang</a>
+            <a href="#tentang" class="btn btn-outline" style="padding: 1rem 2rem; font-size: 1.1rem; border-radius: 30px;">Pelajari Lebih Lanjut</a>
         </div>
     </div>
 </div>

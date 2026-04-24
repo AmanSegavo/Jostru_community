@@ -10,13 +10,14 @@
     --primary-l: 60%;
     --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
     --primary-hover: hsl(var(--primary-h), var(--primary-s), 50%);
-    
+
     --secondary-h: 260;
     --secondary-s: 100%;
     --secondary-l: 65%;
     --secondary: hsl(var(--secondary-h), var(--secondary-s), var(--secondary-l));
-    
-    --accent: #0ea5e9; /* Light energetic blue for abstract highlights */
+
+    --accent: #0ea5e9;
+    /* Light energetic blue for abstract highlights */
 
     /* Light Theme Core Tokens */
     --bg-color: #f1f5f9;
@@ -25,13 +26,13 @@
     --text-primary: #0f172a;
     --text-secondary: #475569;
     --border-color: rgba(226, 232, 240, 0.6);
-    
+
     /* Elegant Soft Shadows */
     --shadow-sm: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
     --shadow-md: 0 10px 20px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
     --shadow-lg: 0 20px 40px -4px rgba(15, 23, 42, 0.15), 0 8px 16px -8px rgba(15, 23, 42, 0.1);
     --glow-primary: 0 0 20px rgba(99, 102, 241, 0.4);
-    
+
     /* Radii */
     --radius-sm: 0.5rem;
     --radius-md: 12px;
@@ -53,7 +54,7 @@ body[data-theme="dark"] {
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --border-color: rgba(255, 255, 255, 0.08);
-    
+
     --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.8);
     --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
     --glow-primary: 0 0 25px rgba(99, 102, 241, 0.5);
@@ -64,19 +65,24 @@ body[data-theme="dark"] {
     width: 10px;
     height: 10px;
 }
+
 ::-webkit-scrollbar-track {
-    background: transparent; 
+    background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.3); 
+    background: rgba(148, 163, 184, 0.3);
     border-radius: 10px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.5); 
+    background: rgba(148, 163, 184, 0.5);
 }
 
 /* Reset & Base */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -95,7 +101,8 @@ body {
 }
 
 /* Abstract Ambient Background Elements */
-body::before, body::after {
+body::before,
+body::after {
     content: '';
     position: fixed;
     border-radius: 50%;
@@ -105,6 +112,7 @@ body::before, body::after {
     transition: var(--transition-slow);
     pointer-events: none;
 }
+
 body::before {
     top: -10%;
     left: -10%;
@@ -112,6 +120,7 @@ body::before {
     height: 600px;
     background: var(--primary);
 }
+
 body::after {
     bottom: -10%;
     right: -10%;
@@ -119,8 +128,11 @@ body::after {
     height: 500px;
     background: var(--secondary);
 }
-body[data-theme="dark"]::before, body[data-theme="dark"]::after {
-    opacity: 0.2; /* Toned down for dark mode readability */
+
+body[data-theme="dark"]::before,
+body[data-theme="dark"]::after {
+    opacity: 0.2;
+    /* Toned down for dark mode readability */
 }
 
 a {
@@ -135,7 +147,12 @@ a:hover {
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-weight: 800;
     line-height: 1.1;
     margin-bottom: 1rem;
@@ -205,7 +222,8 @@ h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-sans);
     font-weight: 700;
     font-size: 1rem;
-    border-radius: var(--radius-full); /* Pill shaped */
+    border-radius: var(--radius-full);
+    /* Pill shaped */
     border: none;
     cursor: pointer;
     transition: var(--transition);
@@ -228,9 +246,11 @@ h1, h2, h3, h4, h5, h6 {
 .btn-primary::after {
     content: '';
     position: absolute;
-    top: 0; left: -100%;
-    width: 50%; height: 100%;
-    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0) 100%);
     transform: skewX(-20deg);
     transition: var(--transition-slow);
 }
@@ -260,8 +280,15 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Animations */
 @keyframes fadeInSlideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .animate-fade-in {
@@ -326,7 +353,9 @@ h1, h2, h3, h4, h5, h6 {
     border-color: rgba(var(--primary-h), var(--primary-s), var(--primary-l), 0.3);
 }
 
-.card-header, .card-body, .card-footer {
+.card-header,
+.card-body,
+.card-footer {
     padding: 1.8rem;
 }
 
@@ -340,29 +369,105 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Utilities */
-.text-center { text-align: center; }
-.mt-4 { margin-top: 1.5rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-4 { margin-bottom: 1.5rem; }
-.p-4 { padding: 1.5rem; }
-.p-5 { padding: 2.5rem; }
-.flex { display: flex; }
-.flex-col { display: flex; flex-direction: column; }
-.items-center { align-items: center; }
-.justify-center { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.gap-4 { gap: 1rem; }
-.gap-6 { gap: 1.5rem; }
-.w-100 { width: 100%; }
-.max-w-md { max-width: 28rem; }
-.mx-auto { margin-left: auto; margin-right: auto; }
-.min-h-screen { min-height: 100vh; }
-.text-sm { font-size: 0.875rem; }
-.text-xl { font-size: 1.25rem; font-weight: 700; }
-.text-2xl { font-size: 1.5rem; font-weight: 800; }
-.text-4xl { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.03em; }
-.text-5xl { font-size: 3.5rem; font-weight: 900; letter-spacing: -0.04em; }
-.text-muted { color: var(--text-secondary); }
+.text-center {
+    text-align: center;
+}
+
+.mt-4 {
+    margin-top: 1.5rem;
+}
+
+.mb-2 {
+    margin-bottom: 0.5rem;
+}
+
+.mb-4 {
+    margin-bottom: 1.5rem;
+}
+
+.p-4 {
+    padding: 1.5rem;
+}
+
+.p-5 {
+    padding: 2.5rem;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.gap-4 {
+    gap: 1rem;
+}
+
+.gap-6 {
+    gap: 1.5rem;
+}
+
+.w-100 {
+    width: 100%;
+}
+
+.max-w-md {
+    max-width: 28rem;
+}
+
+.mx-auto {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.min-h-screen {
+    min-height: 100vh;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.text-xl {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.text-2xl {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.text-4xl {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.text-5xl {
+    font-size: 3.5rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+}
+
+.text-muted {
+    color: var(--text-secondary);
+}
 
 /* Landing Hero */
 .hero {
@@ -394,6 +499,7 @@ h1, h2, h3, h4, h5, h6 {
     border-collapse: separate;
     border-spacing: 0 0.5rem;
 }
+
 .table th {
     padding: 1rem;
     text-align: left;
@@ -403,22 +509,62 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: 0.05em;
     border-bottom: 2px solid var(--border-color);
 }
+
 .table td {
     padding: 1rem;
-    background: rgba(255,255,255,0.02);
+    background: rgba(255, 255, 255, 0.02);
 }
+
 .table tbody tr {
     transition: var(--transition-fast);
 }
+
 .table tbody tr:hover td {
-    background: rgba(255,255,255,0.06);
+    background: rgba(255, 255, 255, 0.06);
     transform: scale(1.01);
 }
+
 .table tbody tr td:first-child {
     border-top-left-radius: var(--radius-md);
     border-bottom-left-radius: var(--radius-md);
 }
+
 .table tbody tr td:last-child {
     border-top-right-radius: var(--radius-md);
     border-bottom-right-radius: var(--radius-md);
+}
+
+/* Tambahkan ini di paling bawah style.css */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    /* Membuat tabel bisa di-scroll ke samping */
+    -webkit-overflow-scrolling: touch;
+    /* Memberikan efek scroll yang mulus di HP */
+    margin-bottom: 1.5rem;
+    border-radius: var(--radius-md);
+    /* Opsional: agar ujung area scroll terlihat rapi */
+}
+
+/* --- FIX PAGINATION LARAVEL --- */
+nav[role="navigation"] svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Memperbaiki tampilan flex pada bungkus pagination agar rapi */
+nav[role="navigation"] .flex {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Opsional: Menyembunyikan teks "Showing 1 to 10 of XX results" di layar HP jika terlalu panjang */
+@media (max-width: 768px) {
+    nav[role="navigation"] .hidden.sm\:flex-1.sm\:flex.sm\:items-center.sm\:justify-between {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        align-items: center;
+    }
 }

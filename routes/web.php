@@ -52,6 +52,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/finances', [AdminController::class, 'finances'])->name('admin.finances');
         Route::get('/finances/export', [AdminController::class, 'exportFinances'])->name('admin.finances.export');
         Route::post('/finances', [AdminController::class, 'storeFinance'])->name('admin.finances.store');
+        Route::put('/finances/{id}', [AdminController::class, 'updateFinance'])->name('admin.finances.update');
         Route::delete('/finances/{id}', [AdminController::class, 'destroyFinance'])->name('admin.finances.destroy');
         Route::get('/members/{id}/preview', [AdminController::class, 'previewCard'])->name('admin.preview_card');
         Route::get('/members/{id}/card', [AdminController::class, 'generateCard'])->name('admin.generate_card');

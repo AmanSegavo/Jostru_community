@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,6 +21,7 @@
         .dashboard-watermark {
             position: relative;
         }
+
         .dashboard-watermark::before {
             content: "";
             position: absolute;
@@ -38,12 +40,13 @@
             pointer-events: none;
             z-index: 0;
         }
+
         /* Make sure content is above watermark */
-        .dashboard-watermark > * {
+        .dashboard-watermark>* {
             position: relative;
             z-index: 1;
         }
-        
+
         .theme-toggle-btn {
             background: none;
             border: none;
@@ -60,12 +63,28 @@
             border: 1px solid var(--border-color);
             margin-left: 10px;
         }
+
         .theme-toggle-btn:hover {
             background-color: var(--bg-color);
+        }
+
+        /* Tambahkan di style.css */
+        @media (max-width: 768px) {
+            .navbar .container {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .nav-links {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
         }
     </style>
     @stack('styles')
 </head>
+
 <body>
     <nav class="navbar">
         <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
@@ -73,7 +92,7 @@
                 <img src="{{ asset('images/logo.png') }}" alt="Jostru Logo" style="height: 35px; width: auto;">
                 <span>Jostru</span>
             </a>
-            
+
             <div class="nav-links" style="display: flex; align-items: center;">
                 @guest
                     <a href="{{ route('login') }}" class="btn btn-outline" style="margin-right: 10px;">Masuk</a>
@@ -90,11 +109,21 @@
                         <button type="submit" class="btn btn-outline">Keluar</button>
                     </form>
                 @endguest
-                
+
                 <!-- Dark Mode Toggle Button -->
                 <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
-                    <svg id="icon-sun" style="display: none;" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    <svg id="icon-moon" style="display: none;" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    <svg id="icon-sun" style="display: none;" width="20" height="20" fill="none" stroke="currentColor"
+                        stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+                        </path>
+                    </svg>
+                    <svg id="icon-moon" style="display: none;" width="20" height="20" fill="none" stroke="currentColor"
+                        stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+                        </path>
+                    </svg>
                 </button>
             </div>
         </div>
@@ -104,7 +133,8 @@
         @yield('content')
     </main>
 
-    <footer class="container text-center text-muted" style="padding: 2rem 0; margin-top: auto; position: relative; z-index: 1;">
+    <footer class="container text-center text-muted"
+        style="padding: 2rem 0; margin-top: auto; position: relative; z-index: 1;">
         &copy; {{ date('Y') }} Jostru Community. All rights reserved.
     </footer>
 
@@ -120,7 +150,7 @@
                 document.getElementById('icon-moon').style.display = 'block';
             }
         }
-        
+
         function toggleTheme() {
             let current = document.body.getAttribute('data-theme');
             let next = (current === 'dark') ? 'light' : 'dark';
@@ -133,7 +163,8 @@
         document.addEventListener('DOMContentLoaded', updateThemeIcon);
         updateThemeIcon(); // Run immediately for fast render
     </script>
-    
+
     @stack('scripts')
 </body>
+
 </html>

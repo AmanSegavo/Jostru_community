@@ -72,6 +72,20 @@
             padding-left: 1rem;
             opacity: 0.7;
         }
+
+        @media (max-width: 768px) {
+            .admin-layout {
+                flex-direction: column;
+                padding: 0 1rem;
+            }
+
+            .admin-sidebar {
+                width: 100%;
+                position: relative;
+                top: 0;
+                padding: 1rem;
+            }
+        }
     </style>
 @endpush
 

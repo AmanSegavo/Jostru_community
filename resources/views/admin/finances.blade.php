@@ -5,11 +5,15 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
         <h2 style="margin: 0;">Laporan Keuangan Komunitas</h2>
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <form action="{{ route('admin.finances') }}" method="GET" style="display: flex; align-items: center;">
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari keterangan..." required style="padding: 0.6rem 1rem; border: 1px solid var(--border-color); border-radius: 20px 0 0 20px; background: rgba(0,0,0,0.05); color: var(--text-color); outline: none;">
-                <button type="submit" style="padding: 0.6rem 1.2rem; background: var(--primary); color: white; border: none; border-radius: 0 20px 20px 0; cursor: pointer; font-weight: 600;">Cari</button>
-                @if(request('search'))
-                    <a href="{{ route('admin.finances') }}" style="margin-left: 10px; font-size: 13px; color: #ef4444;">Reset</a>
+            <form action="{{ route('admin.finances') }}" method="GET" style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                <input type="date" name="start_date" value="{{ request('start_date') }}" style="padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.05); color: var(--text-color); outline: none;">
+                <span class="text-muted">-</span>
+                <input type="date" name="end_date" value="{{ request('end_date') }}" style="padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.05); color: var(--text-color); outline: none;">
+                
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari keterangan/kategori..." style="padding: 0.6rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.05); color: var(--text-color); outline: none;">
+                <button type="submit" style="padding: 0.6rem 1.2rem; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Filter</button>
+                @if(request('search') || request('start_date') || request('end_date'))
+                    <a href="{{ route('admin.finances') }}" style="margin-left: 5px; font-size: 13px; color: #ef4444;">Reset</a>
                 @endif
             </form>
             <a href="{{ route('admin.finances.export') }}" class="btn" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.3);">
@@ -20,7 +24,7 @@
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success" style="background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.2); padding: 1rem; border-radius: 8px;">
+        <div class="alert alert-success" style="background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
             {{ session('success') }}
         </div>
     @endif
@@ -45,29 +49,38 @@
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem; align-items: start;">
         <div style="flex: 1; min-width: 300px;">
             <div class="card p-4 glass">
-                <h4 class="mb-4">Input Data Baru</h4>
-                <form action="{{ route('admin.finances.store') }}" method="POST">
+                <h4 class="mb-4" id="formTitle">Input Data Baru</h4>
+                <form action="{{ route('admin.finances.store') }}" method="POST" id="financeForm">
                     @csrf
+                    <input type="hidden" name="_method" value="POST" id="formMethod">
+                    
                     <div class="mb-3" style="margin-bottom: 1.25rem;">
                         <label class="form-label" style="color: var(--text-secondary);">Jenis Transaksi</label>
-                        <select name="type" class="form-control" required style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color);">
+                        <select name="type" id="typeInput" class="form-control" required style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color);">
                             <option style="color: black;" value="PEMASUKAN">Pemasukan</option>
                             <option style="color: black;" value="PENGELUARAN">Pengeluaran</option>
                         </select>
                     </div>
                     <div class="mb-3" style="margin-bottom: 1.25rem;">
+                        <label class="form-label" style="color: var(--text-secondary);">Kategori (Opsional)</label>
+                        <input type="text" name="kategori" id="kategoriInput" class="form-control" placeholder="Iuran, Donasi, Operasional..." style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color);">
+                    </div>
+                    <div class="mb-3" style="margin-bottom: 1.25rem;">
                         <label class="form-label" style="color: var(--text-secondary);">Nominal (Rp)</label>
-                        <input type="number" name="amount" class="form-control" required min="0" placeholder="100000" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color);">
+                        <input type="number" name="amount" id="amountInput" class="form-control" required min="0" placeholder="100000" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color);">
                     </div>
                     <div class="mb-3" style="margin-bottom: 1.25rem;">
                         <label class="form-label" style="color: var(--text-secondary);">Tanggal Transaksi</label>
-                        <input type="date" name="transaction_date" class="form-control" required value="{{ date('Y-m-d') }}" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color); color-scheme: dark;">
+                        <input type="date" name="transaction_date" id="dateInput" class="form-control" required value="{{ date('Y-m-d') }}" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color); color-scheme: dark;">
                     </div>
                     <div class="mb-4">
                         <label class="form-label" style="color: var(--text-secondary);">Keterangan Lengkap</label>
-                        <textarea name="description" class="form-control" rows="3" required placeholder="Iuran bulan April dari hamba Allah..." style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color);"></textarea>
+                        <textarea name="description" id="descInput" class="form-control" rows="3" required placeholder="Iuran bulan April dari hamba Allah..." style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color);"></textarea>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Simpan Transaksi</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="btn btn-primary w-100" id="submitBtn">Simpan Transaksi</button>
+                        <button type="button" class="btn btn-outline w-100" id="cancelBtn" style="display: none;" onclick="resetForm()">Batal Edit</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -76,11 +89,12 @@
             <div class="card p-4 glass">
                 <h4 class="mb-4">Riwayat Transaksi</h4>
                 <div class="table-responsive" style="overflow-x: auto;">
-                    <table class="table text-white" style="width: 100%; min-width: 600px;">
+                    <table class="table text-white" style="width: 100%; min-width: 700px;">
                         <thead>
                             <tr>
                                 <th style="color: var(--text-secondary);">Tanggal</th>
                                 <th style="color: var(--text-secondary);">Jenis</th>
+                                <th style="color: var(--text-secondary);">Kategori</th>
                                 <th style="color: var(--text-secondary);">Keterangan</th>
                                 <th style="color: var(--text-secondary);">Nominal</th>
                                 <th style="color: var(--text-secondary);">Aksi</th>
@@ -97,32 +111,69 @@
                                             <span class="badge bg-danger" style="background: rgba(239, 68, 68, 0.2) !important; color: #ef4444;">Pengeluaran</span>
                                         @endif
                                     </td>
+                                    <td>{{ $finance->kategori ?? '-' }}</td>
                                     <td>{{ $finance->description }}</td>
                                     <td style="font-weight: bold; color: {{ $finance->type == 'PEMASUKAN' ? '#22c55e' : '#ef4444' }}">
                                         Rp {{ number_format($finance->amount, 0, ',', '.') }}
                                     </td>
                                     <td>
-                                        <form action="{{ route('admin.finances.destroy', $finance->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini? Saldo akan dihitung ulang secara otomatis.');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline" style="color: #ef4444; border-color: rgba(239,68,68,0.5); padding: 5px 10px; font-size: 12px;">Hapus</button>
-                                        </form>
+                                        <div style="display: flex; gap: 5px;">
+                                            <button type="button" class="btn btn-sm btn-outline" style="padding: 5px 10px; font-size: 12px;" onclick="editFinance({{ $finance->id }}, '{{ $finance->type }}', '{{ $finance->kategori }}', {{ $finance->amount }}, '{{ $finance->transaction_date->format('Y-m-d') }}', '{{ $finance->description }}')">Edit</button>
+                                            
+                                            <form action="{{ route('admin.finances.destroy', $finance->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini? Saldo akan dihitung ulang secara otomatis.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline" style="color: #ef4444; border-color: rgba(239,68,68,0.5); padding: 5px 10px; font-size: 12px;">Hapus</button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">Belum ada riwayat transaksi keuangan.</td>
+                                    <td colspan="6" class="text-center text-muted py-4">Belum ada riwayat transaksi keuangan.</td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
 
-                <div class="mt-4">
+                <div class="mt-4" style="display: flex; justify-content: center;">
                     {{ $finances->links() }}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    function editFinance(id, type, kategori, amount, date, description) {
+        document.getElementById('formTitle').innerText = 'Edit Transaksi';
+        document.getElementById('financeForm').action = `/admin/finances/${id}`;
+        document.getElementById('formMethod').value = 'PUT';
+        
+        document.getElementById('typeInput').value = type;
+        document.getElementById('kategoriInput').value = kategori !== '-' ? kategori : '';
+        document.getElementById('amountInput').value = amount;
+        document.getElementById('dateInput').value = date;
+        document.getElementById('descInput').value = description;
+        
+        document.getElementById('submitBtn').innerText = 'Update Transaksi';
+        document.getElementById('cancelBtn').style.display = 'block';
+        
+        // Scroll to form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+        document.getElementById('formTitle').innerText = 'Input Data Baru';
+        document.getElementById('financeForm').action = `{{ route('admin.finances.store') }}`;
+        document.getElementById('formMethod').value = 'POST';
+        
+        document.getElementById('financeForm').reset();
+        document.getElementById('dateInput').value = '{{ date('Y-m-d') }}';
+        
+        document.getElementById('submitBtn').innerText = 'Simpan Transaksi';
+        document.getElementById('cancelBtn').style.display = 'none';
+    }
+</script>
 @endsection
