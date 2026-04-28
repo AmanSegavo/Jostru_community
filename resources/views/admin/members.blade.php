@@ -148,6 +148,7 @@
                         <th>Kredensial</th>
                         <th>Biodata</th>
                         <th>Status</th>
+                        <th>Chat</th>
                         <th style="text-align: right;">Aksi</th>
                     </tr>
                 </thead>
@@ -169,6 +170,13 @@
                                     <span class="badge badge-aktif">Aktif</span>
                                 @else
                                     <span class="badge badge-tidak-aktif">Tidak Aktif</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($member->can_chat ?? true)
+                                    <span class="badge bg-success" style="background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.2);">ON</span>
+                                @else
+                                    <span class="badge bg-danger" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);">OFF</span>
                                 @endif
                             </td>
                             <td style="text-align: right;">
@@ -327,14 +335,21 @@
                     <label>Posisi / Jabatan</label>
                     <input type="text" name="jabatan" id="e_jabatan" class="form-control" required>
                 </div>
-                <div class="form-group">
-                    <label>Status Akun</label>
-                    <select name="status" id="e_status" class="form-control" required>
-                        <option value="AKTIF">Aktif</option>
-                        <option value="TIDAK AKTIF">Tidak Aktif</option>
-                    </select>
+                    <div class="form-group">
+                        <label>Status Akun</label>
+                        <select name="status" id="e_status" class="form-control" required>
+                            <option value="AKTIF">Aktif</option>
+                            <option value="TIDAK AKTIF">Tidak Aktif</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Izin Komunikasi (Chat/Call)</label>
+                        <select name="can_chat" id="e_can_chat" class="form-control" required>
+                            <option value="1">Izinkan</option>
+                            <option value="0">Blokir</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
 
             <div class="form-group">
                 <label>Alamat &amp; Lokasi Peta</label>
@@ -611,6 +626,7 @@
         document.getElementById('e_email').value = member.email;
         document.getElementById('e_jabatan').value = member.jabatan || 'Anggota';
         document.getElementById('e_status').value = member.status || 'AKTIF';
+        document.getElementById('e_can_chat').value = (member.can_chat === undefined || member.can_chat) ? "1" : "0";
         document.getElementById('e_member_id').value = member.member_id || '';
         document.getElementById('e_role').value = member.role || 'member';
         document.getElementById('e_tanggal_lahir').value = member.tanggal_lahir || '';

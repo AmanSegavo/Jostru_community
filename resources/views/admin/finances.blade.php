@@ -30,9 +30,15 @@
     @endif
 
     <!-- Top Summary Cards -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;" class="mb-4">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.5rem;" class="mb-4">
         <div class="card p-3 glass border-0" style="border-left: 4px solid #22c55e !important;">
-            <h6 class="text-muted mb-2">Total Pemasukan</h6>
+            <div class="d-flex justify-content-between">
+                <h6 class="text-muted mb-2">Total Pemasukan</h6>
+                @php $diff = $thisMonthPemasukan - $lastMonthPemasukan; @endphp
+                <small style="color: {{ $diff >= 0 ? '#22c55e' : '#ef4444' }}; font-size: 10px;">
+                    {{ $diff >= 0 ? '▲' : '▼' }} Bln ini
+                </small>
+            </div>
             <h3 style="color: #22c55e; margin: 0;">Rp {{ number_format($totalPemasukan, 0, ',', '.') }}</h3>
         </div>
         <div class="card p-3 glass border-0" style="border-left: 4px solid #ef4444 !important;">
@@ -42,6 +48,35 @@
         <div class="card p-3 glass border-0" style="border-left: 4px solid #3b82f6 !important;">
             <h6 class="text-muted mb-2">Saldo Akhir</h6>
             <h3 style="color: #3b82f6; margin: 0;">Rp {{ number_format($saldo, 0, ',', '.') }}</h3>
+        </div>
+        <div class="card p-3 glass border-0" style="border-left: 4px solid #f59e0b !important;">
+            <h6 class="text-muted mb-2">Kategori Aktif</h6>
+            <h3 style="color: #f59e0b; margin: 0;">{{ $pemasukanPerKategori->count() + $pengeluaranPerKategori->count() }}</h3>
+        </div>
+    </div>
+
+    <!-- Category Breakdown (Detailed Section) -->
+    <div class="card p-4 glass mb-4">
+        <h4 class="mb-3">Analisis Kategori</h4>
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-muted mb-3">Sumber Pemasukan</h6>
+                @foreach($pemasukanPerKategori as $pk)
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2" style="background: rgba(34, 197, 94, 0.05); border-radius: 8px;">
+                        <span>{{ $pk->kategori ?: 'Lain-lain' }}</span>
+                        <span style="font-weight: 600; color: #22c55e;">Rp {{ number_format($pk->total, 0, ',', '.') }}</span>
+                    </div>
+                @endforeach
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-muted mb-3">Alokasi Pengeluaran</h6>
+                @foreach($pengeluaranPerKategori as $pk)
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2" style="background: rgba(239, 68, 68, 0.05); border-radius: 8px;">
+                        <span>{{ $pk->kategori ?: 'Lain-lain' }}</span>
+                        <span style="font-weight: 600; color: #ef4444;">Rp {{ number_format($pk->total, 0, ',', '.') }}</span>
+                    </div>
+                @endforeach
+            </div>
         </div>
     </div>
 

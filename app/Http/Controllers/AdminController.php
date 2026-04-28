@@ -8,6 +8,9 @@ use App\Models\MembershipCard;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use App\Models\Post;
+use App\Models\Event;
+use App\Models\WasteDeposit;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\Typography\FontFactory;
@@ -42,7 +45,11 @@ class AdminController extends Controller
 
         $activities = \App\Models\ActivityLog::with('user')->latest()->take(5)->get();
 
-        return view('admin.dashboard', compact('months', 'pemasukanData', 'pengeluaranData', 'activities'));
+        $totalWaste = \App\Models\WasteDeposit::where('status', 'APPROVED')->sum('weight');
+        $pendingWaste = \App\Models\WasteDeposit::where('status', 'PENDING')->count();
+        $totalPosts = \App\Models\Post::count();
+
+        return view('admin.dashboard', compact('months', 'pemasukanData', 'pengeluaranData', 'activities', 'totalWaste', 'pendingWaste', 'totalPosts'));
     }
 
     public function members(Request $request)
@@ -167,6 +174,10 @@ class AdminController extends Controller
             'member_id' => $request->member_id ?: $user->member_id,
         ];
 
+        if ($request->has('can_chat') && \Illuminate\Support\Facades\Schema::hasColumn('users', 'can_chat')) {
+            $data['can_chat'] = $request->can_chat;
+        }
+
         if ($request->filled('password')) {
             $data['password'] = \Illuminate\Support\Facades\Hash::make($request->password);
         }
@@ -239,14 +250,45 @@ class AdminController extends Controller
             $query->whereDate('transaction_date', '<=', $request->end_date);
         }
 
+        // Totals
         $totalPemasukan = \App\Models\Finance::where('type', 'PEMASUKAN')->sum('amount');
         $totalPengeluaran = \App\Models\Finance::where('type', 'PENGELUARAN')->sum('amount');
         $saldo = $totalPemasukan - $totalPengeluaran;
 
+        // Statistics per Category
+        $pemasukanPerKategori = \App\Models\Finance::where('type', 'PEMASUKAN')
+            ->select('kategori', \DB::raw('SUM(amount) as total'))
+            ->groupBy('kategori')
+            ->get();
+            
+        $pengeluaranPerKategori = \App\Models\Finance::where('type', 'PENGELUARAN')
+            ->select('kategori', \DB::raw('SUM(amount) as total'))
+            ->groupBy('kategori')
+            ->get();
+
+        // Monthly Delta (This month vs Last month)
+        $thisMonthPemasukan = \App\Models\Finance::where('type', 'PEMASUKAN')
+            ->whereMonth('transaction_date', now()->month)
+            ->whereYear('transaction_date', now()->year)
+            ->sum('amount');
+        $lastMonthPemasukan = \App\Models\Finance::where('type', 'PEMASUKAN')
+            ->whereMonth('transaction_date', now()->subMonth()->month)
+            ->whereYear('transaction_date', now()->subMonth()->year)
+            ->sum('amount');
+
         $finances = $query->orderBy('transaction_date', 'desc')->latest()->paginate(15);
-        $finances->appends($request->all()); // Preserve all filters on pagination
+        $finances->appends($request->all()); 
         
-        return view('admin.finances', compact('finances', 'totalPemasukan', 'totalPengeluaran', 'saldo'));
+        return view('admin.finances', compact(
+            'finances', 
+            'totalPemasukan', 
+            'totalPengeluaran', 
+            'saldo',
+            'pemasukanPerKategori',
+            'pengeluaranPerKategori',
+            'thisMonthPemasukan',
+            'lastMonthPemasukan'
+        ));
     }
 
     public function exportFinances()
@@ -376,7 +418,7 @@ class AdminController extends Controller
         if (!file_exists($templatePath)) {
             return back()->with('error', 'File template kartu tidak ditemukan.');
         }
-        $image = $manager->decode($templatePath);
+        $image = $manager->read($templatePath);
 
         // 3. Generate QR Code menjadi format PNG
         // Karena ekstensi Imagick di mesin Anda tidak aktif, kita akan mem-bypass library simplesoftware
@@ -393,14 +435,14 @@ class AdminController extends Controller
                 throw new \Exception('API Error');
             }
             
-            $qrImage = $manager->decode($qrResponse->body());
+            $qrImage = $manager->read($qrResponse->body());
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal memuat QR Code: Aktifkan ekstensi php_imagick atau pastikan terhubung ke internet.');
         }
 
         // 4. Tempelkan QR Code ke template (v4 menggunakan insert)
         // Kordinat X: 1114, Y: 720 (Untuk kotak putih kanan bawah)
-        $image->insert($qrImage, 1114, 720);
+        $image->place($qrImage, 'top-left', 1114, 720);
 
         // 5. Tulis Informasi Anggota
         $fontPath = public_path('fonts/arial.ttf'); // Pastikan font arial.ttf sudah ada di public/fonts/
@@ -411,7 +453,7 @@ class AdminController extends Controller
             $font->filename($fontPath);
             $font->size(60);
             $font->color('#ffffff');
-            $font->align(vertical: 'top');
+            $font->valign('top');
         });
 
         // Menulis ID Member
@@ -517,5 +559,86 @@ class AdminController extends Controller
         return response($encoded->toString())
             ->header('Content-Type', 'image/jpeg')
             ->header('Content-Disposition', 'attachment; filename="ID_Card_' . $user->name . '.jpg"');
+    }
+
+    // Posts Management
+    public function posts()
+    {
+        $posts = Post::with('user')->latest()->paginate(15);
+        return view('admin.posts', compact('posts'));
+    }
+
+    public function storePost(Request $request)
+    {
+        $request->validate([
+            'content' => 'required',
+            'image' => 'nullable|image|max:2048'
+        ]);
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('posts', 'public');
+        }
+
+        Post::create([
+            'user_id' => auth()->id(),
+            'content' => $request->content,
+            'image_path' => $imagePath
+        ]);
+
+        return back()->with('success', 'Postingan berhasil dibagikan.');
+    }
+
+    public function destroyPost($id)
+    {
+        Post::findOrFail($id)->delete();
+        return back()->with('success', 'Postingan dihapus.');
+    }
+
+    // Events Management
+    public function adminEvents()
+    {
+        $events = Event::orderBy('event_date', 'asc')->get();
+        return view('admin.events', compact('events'));
+    }
+
+    public function storeEvent(Request $request)
+    {
+        $request->validate([
+            'title' => 'required',
+            'description' => 'required',
+            'event_date' => 'required|date',
+            'location' => 'nullable|string'
+        ]);
+
+        Event::create($request->all());
+        return back()->with('success', 'Event berhasil dijadwalkan.');
+    }
+
+    public function destroyEvent($id)
+    {
+        Event::findOrFail($id)->delete();
+        return back()->with('success', 'Event dibatalkan.');
+    }
+
+    // Waste Deposits Management
+    public function wasteDeposits()
+    {
+        $deposits = WasteDeposit::with('user')->latest()->paginate(20);
+        return view('admin.waste_deposits', compact('deposits'));
+    }
+
+    public function updateWasteStatus(Request $request, $id)
+    {
+        $deposit = WasteDeposit::findOrFail($id);
+        $deposit->update(['status' => $request->status]);
+        
+        return back()->with('success', 'Status setoran berhasil diperbarui.');
+    }
+
+    public function destroyWasteDeposit($id)
+    {
+        WasteDeposit::findOrFail($id)->delete();
+        return back()->with('success', 'Data setoran dihapus.');
     }
 }

@@ -84,6 +84,37 @@ class AuthController extends Controller
         return redirect('/dashboard');
     }
 
+    public function profile()
+    {
+        return view('member.profile');
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . auth()->id(),
+        ]);
+
+        auth()->user()->update($request->only('name', 'email'));
+        return back()->with('success', 'Profil berhasil diperbarui!');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        if (!Hash::check($request->current_password, auth()->user()->password)) {
+            return back()->withErrors(['current_password' => 'Password lama salah.']);
+        }
+
+        auth()->user()->update(['password' => Hash::make($request->password)]);
+        return back()->with('success', 'Password berhasil diubah!');
+    }
+
     public function logout(Request $request)
     {
         Auth::logout();
@@ -102,12 +133,29 @@ class AuthController extends Controller
     {
         try {
             $googleUser = \Laravel\Socialite\Facades\Socialite::driver('google')->user();
-            $user = User::where('google_id', $googleUser->id)
-                        ->orWhere('email', $googleUser->email)
-                        ->first();
+            
+            // 1. Cek apakah google_id ini sudah dipakai akun lain
+            $userByGoogleId = User::where('google_id', $googleUser->id)->first();
+
+            if (Auth::check()) {
+                $currentUser = Auth::user();
+                
+                // Jika google_id sudah dipakai orang lain, jangan tautkan
+                if ($userByGoogleId && $userByGoogleId->id !== $currentUser->id) {
+                    return redirect('/member/profile')->withErrors(['email' => 'Akun Google ini sudah tertaut dengan akun lain.']);
+                }
+
+                // Tautkan ke akun saat ini
+                $currentUser->update(['google_id' => $googleUser->id]);
+                
+                return redirect('/member/profile')->with('success', 'Akun Google berhasil ditautkan!');
+            }
+
+            // 2. Jika tidak sedang login, jalankan flow Login/Register biasa
+            $user = $userByGoogleId ?: User::where('email', $googleUser->email)->first();
 
             if ($user) {
-                // Update google_id if not set but email matches
+                // Update google_id jika belum ada (Auto-link by Email)
                 if (!$user->google_id) {
                     $user->update(['google_id' => $googleUser->id]);
                 }
@@ -118,7 +166,7 @@ class AuthController extends Controller
                     'description' => 'Login berhasil via SSO Google dari IP: ' . request()->ip()
                 ]);
             } else {
-                // Create cryptographic member id
+                // Register User Baru
                 $seed = $googleUser->email . uniqid();
                 $hash = strtoupper(substr(hash('sha256', $seed), 0, 8));
                 
@@ -126,12 +174,12 @@ class AuthController extends Controller
                     'name' => $googleUser->name,
                     'email' => $googleUser->email,
                     'google_id' => $googleUser->id,
-                    'password' => Hash::make(uniqid() . rand(1000, 9999)), // Secure random password
+                    'password' => Hash::make(uniqid() . rand(1000, 9999)),
                     'role' => 'member',
                     'member_id' => 'JC-' . $hash,
                     'jabatan' => 'Anggota (Pendaftar Google)',
                     'status' => 'AKTIF',
-                    'tanggal_lahir' => date('Y-m-d'), // Placeholder
+                    'tanggal_lahir' => date('Y-m-d'),
                     'alamat' => '',
                 ]);
 
@@ -149,7 +197,7 @@ class AuthController extends Controller
 
             return redirect()->intended('/dashboard');
         } catch (\Exception $e) {
-            return redirect('/login')->withErrors(['email' => 'Gagal memproses autentikasi Google. Pastikan Laravel Socialite & kredensial Google App dikonfigurasi dengan benar.']);
+            return redirect('/login')->withErrors(['email' => 'Gagal memproses autentikasi Google: ' . $e->getMessage()]);
         }
     }
 }

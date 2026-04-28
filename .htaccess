@@ -1,0 +1,16 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Handle the public folder redirection
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Protect sensitive files
+<Files .env>
+    Order allow,deny
+    Deny from all
+</Files>
+<Files jostru_migrate.sql>
+    Order allow,deny
+    Deny from all
+</Files>

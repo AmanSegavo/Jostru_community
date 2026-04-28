@@ -98,6 +98,12 @@
                     class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">Dashboard</a>
                 <a href="{{ route('admin.members') }}"
                     class="nav-item {{ request()->routeIs('admin.members') ? 'active' : '' }}">Manajemen Anggota</a>
+                <a href="{{ route('admin.waste_deposits') }}"
+                    class="nav-item {{ request()->routeIs('admin.waste_deposits') ? 'active' : '' }}">Setoran Limbah</a>
+                <a href="{{ route('admin.posts') }}"
+                    class="nav-item {{ request()->routeIs('admin.posts') ? 'active' : '' }}">Community Feed</a>
+                <a href="{{ route('admin.events') }}"
+                    class="nav-item {{ request()->routeIs('admin.events') ? 'active' : '' }}">Agenda Event</a>
                 <a href="{{ route('admin.cards') }}"
                     class="nav-item {{ request()->routeIs('admin.cards') ? 'active' : '' }}">Kartu Digital</a>
                 <a href="{{ route('admin.finances') }}"
@@ -106,6 +112,10 @@
                     class="nav-item {{ request()->routeIs('admin.messages') ? 'active' : '' }}">Pesan Masuk</a>
                 <a href="{{ route('admin.logs') }}"
                     class="nav-item {{ request()->routeIs('admin.logs') ? 'active' : '' }}">Log Aktivitas</a>
+                
+                <h3 class="mb-3 mt-4 text-sm text-muted uppercase">Akun Saya</h3>
+                <a href="{{ route('member.profile') }}"
+                    class="nav-item {{ request()->routeIs('member.profile') ? 'active' : '' }}">Profil & Keamanan</a>
             </nav>
         </aside>
         <section class="admin-content">

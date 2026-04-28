@@ -7,6 +7,15 @@
     <title>@yield('title', 'Jostru Community')</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#22c55e">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
     <script>
         // Init theme early to prevent flash
         let storedTheme = localStorage.getItem('jostru_theme');
@@ -17,6 +26,7 @@
         document.documentElement.setAttribute('data-theme', storedTheme);
         document.body.setAttribute('data-theme', storedTheme);
     </script>
+    
     <style>
         .dashboard-watermark {
             position: relative;
@@ -100,6 +110,7 @@
                 @else
                     @if(in_array(auth()->user()->role, ['admin', 'superadmin']))
                         <a href="{{ route('admin.dashboard') }}" style="margin-right: 15px;">Admin Panel</a>
+                        <a href="{{ route('member.profile') }}" style="margin-right: 15px;">Profil</a>
                     @else
                         <a href="{{ route('dashboard') }}" style="margin-right: 15px;">Dashboard</a>
                         <a href="{{ route('member.profile') }}" style="margin-right: 15px;">Profil</a>
@@ -134,7 +145,13 @@
     </main>
 
     <footer class="container text-center text-muted"
-        style="padding: 2rem 0; margin-top: auto; position: relative; z-index: 1;">
+        style="padding: 3rem 0; margin-top: auto; position: relative; z-index: 1;">
+        <div style="margin-bottom: 1.5rem;">
+            <a href="https://www.instagram.com/jostru_community/" target="_blank" class="text-muted" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 600;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-instagram"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                @jostru_community
+            </a>
+        </div>
         &copy; {{ date('Y') }} Jostru Community. All rights reserved.
     </footer>
 
