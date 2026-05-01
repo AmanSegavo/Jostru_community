@@ -8,14 +8,13 @@ $localBase  = "D:\Jostru Community Sistem\Jostru_community"
 
 # Mapping: local relative path => remote path on server
 $files = @{
-    "config\services.php"                           = "/htdocs/config/services.php"
-    "resources\views\auth\login.blade.php"          = "/htdocs/resources/views/auth/login.blade.php"
-    "resources\views\auth\register.blade.php"       = "/htdocs/resources/views/auth/register.blade.php"
-    "app\Http\Controllers\AdminController.php"      = "/htdocs/app/Http/Controllers/AdminController.php"
-    "app\Models\User.php"                           = "/htdocs/app/Models/User.php"
-    ".htaccess"                                     = "/htdocs/.htaccess"
-    "jostru_migrate.sql"                           = "/htdocs/jostru_migrate.sql"
+    "resources\views\layouts\app.blade.php"              = "/htdocs/resources/views/layouts/app.blade.php"
+    "app\Http\Controllers\AuthController.php"            = "/htdocs/app/Http/Controllers/AuthController.php"
+    "app\Http\Controllers\MemberController.php"          = "/htdocs/app/Http/Controllers/MemberController.php"
+    "public\db_fixer.php"                                = "/htdocs/public/db_fixer.php"
 }
+
+
 
 function Upload-File($localPath, $remotePath) {
     $uri = "$ftpHost$remotePath"

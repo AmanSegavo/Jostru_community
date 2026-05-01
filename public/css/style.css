@@ -4,60 +4,60 @@
 */
 
 :root {
-    /* Premium Ocean Indigo HSL Palette */
-    --primary-h: 228;
-    --primary-s: 88%;
-    --primary-l: 60%;
+    /* Premium Emerald & Indigo HSL Palette */
+    --primary-h: 158;
+    --primary-s: 70%;
+    --primary-l: 45%;
     --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
-    --primary-hover: hsl(var(--primary-h), var(--primary-s), 50%);
+    --primary-hover: hsl(var(--primary-h), var(--primary-s), 35%);
 
-    --secondary-h: 260;
-    --secondary-s: 100%;
-    --secondary-l: 65%;
+    --secondary-h: 228;
+    --secondary-s: 80%;
+    --secondary-l: 55%;
     --secondary: hsl(var(--secondary-h), var(--secondary-s), var(--secondary-l));
 
-    --accent: #0ea5e9;
-    /* Light energetic blue for abstract highlights */
+    --accent: #10b981;
+    /* Soft emerald highlight */
 
     /* Light Theme Core Tokens */
-    --bg-color: #f1f5f9;
-    --surface-color: rgba(255, 255, 255, 0.7);
-    --surface-hover: rgba(255, 255, 255, 0.95);
+    --bg-color: #f8fafc;
+    --surface-color: rgba(255, 255, 255, 0.85);
+    --surface-hover: rgba(255, 255, 255, 0.98);
     --text-primary: #0f172a;
     --text-secondary: #475569;
-    --border-color: rgba(226, 232, 240, 0.6);
+    --border-color: rgba(226, 232, 240, 0.8);
 
-    /* Elegant Soft Shadows */
-    --shadow-sm: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
-    --shadow-md: 0 10px 20px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
-    --shadow-lg: 0 20px 40px -4px rgba(15, 23, 42, 0.15), 0 8px 16px -8px rgba(15, 23, 42, 0.1);
-    --glow-primary: 0 0 20px rgba(99, 102, 241, 0.4);
+    /* Elegant Soft Shadows (Apple-like) */
+    --shadow-sm: 0 2px 10px -2px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 15px 30px -5px rgba(15, 23, 42, 0.08), 0 8px 12px -6px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 25px 50px -10px rgba(15, 23, 42, 0.12), 0 12px 24px -10px rgba(15, 23, 42, 0.08);
+    --glow-primary: 0 0 25px rgba(16, 185, 129, 0.3);
 
     /* Radii */
-    --radius-sm: 0.5rem;
-    --radius-md: 12px;
-    --radius-lg: 20px;
+    --radius-sm: 8px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
     --radius-full: 9999px;
 
     /* Typography */
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-    --transition-slow: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    --transition-slow: all 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body[data-theme="dark"] {
-    /* Deep Void Dark Theme */
-    --bg-color: #0b0f19;
-    --surface-color: rgba(20, 27, 45, 0.6);
-    --surface-hover: rgba(30, 41, 59, 0.8);
+    /* Deep Emerald Dark Theme */
+    --bg-color: #060e14;
+    --surface-color: rgba(15, 23, 42, 0.7);
+    --surface-hover: rgba(30, 41, 59, 0.9);
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
-    --border-color: rgba(255, 255, 255, 0.08);
+    --border-color: rgba(255, 255, 255, 0.06);
 
-    --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.8);
-    --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
-    --glow-primary: 0 0 25px rgba(99, 102, 241, 0.5);
+    --shadow-md: 0 15px 35px -5px rgba(0, 0, 0, 0.9);
+    --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 1);
+    --glow-primary: 0 0 30px rgba(16, 185, 129, 0.35);
 }
 
 /* Custom Scrollbar */
@@ -566,5 +566,78 @@ nav[role="navigation"] .flex {
         flex-direction: column;
         gap: 15px;
         align-items: center;
+    }
+}
+
+/* =========================================
+   MOBILE BOTTOM NAVIGATION (APP-LIKE)
+   ========================================= */
+.bottom-nav {
+    display: none; /* Sembunyi di PC */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--surface-color);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid var(--border-color);
+    z-index: 1000;
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+}
+
+.bottom-nav-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 65px;
+}
+
+.bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.65rem;
+    font-weight: 600;
+    gap: 4px;
+    flex: 1;
+    transition: var(--transition-fast);
+}
+
+.bottom-nav-item svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2;
+    transition: var(--transition-fast);
+}
+
+.bottom-nav-item.active {
+    color: var(--primary);
+}
+
+.bottom-nav-item.active svg {
+    fill: rgba(var(--primary-h), var(--primary-s), var(--primary-l), 0.2);
+    transform: translateY(-2px);
+}
+
+.bottom-nav-item:active {
+    transform: scale(0.9);
+}
+
+@media (max-width: 768px) {
+    .bottom-nav {
+        display: block !important; /* Muncul di HP */
+    }
+
+    body {
+        padding-bottom: 80px; /* Spacer untuk bottom nav */
+    }
+
+    .admin-sidebar {
+        display: none !important; /* Sembunyikan sidebar di HP */
     }
 }

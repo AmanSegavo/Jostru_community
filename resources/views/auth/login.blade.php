@@ -55,8 +55,9 @@
                 <a href="#" class="text-sm">Lupa Sandi?</a>
             </div>
 
-            <button type="submit" class="btn btn-primary w-full">
-                Masuk
+            <button type="submit" id="btn-submit-login" class="btn btn-primary" style="width: 100%; display: block; padding: 0.85rem; font-size: 1rem; font-weight: 700; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span id="btn-submit-text">Masuk</span>
+                <svg id="btn-submit-spinner" style="display:none; animation: spin 1s linear infinite;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.3"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>
             </button>
         </form>
 
@@ -138,5 +139,22 @@
     function onScanFailure(error) {
         // Abaikan error continous scan
     }
+
+    // Loading state on form submit
+    document.getElementById('login-form').addEventListener('submit', function() {
+        const btn = document.getElementById('btn-submit-login');
+        const text = document.getElementById('btn-submit-text');
+        const spinner = document.getElementById('btn-submit-spinner');
+        btn.disabled = true;
+        btn.style.opacity = '0.8';
+        text.textContent = 'Memproses...';
+        spinner.style.display = 'block';
+    });
 </script>
+<style>
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
 @endsection

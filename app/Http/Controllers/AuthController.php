@@ -23,7 +23,7 @@ class AuthController extends Controller
         ]);
 
         $fieldType = filter_var($request->login_id, FILTER_VALIDATE_EMAIL) ? 'email' : 'member_id';
-        
+
         $credentials = [
             $fieldType => $request->login_id,
             'password' => $request->password
@@ -86,18 +86,40 @@ class AuthController extends Controller
 
     public function profile()
     {
-        return view('member.profile');
+        $user = auth()->user();
+        return view('member.profile', compact('user'));
     }
 
     public function updateProfile(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . auth()->id(),
-        ]);
+        $user = auth()->user();
 
-        auth()->user()->update($request->only('name', 'email'));
-        return back()->with('success', 'Profil berhasil diperbarui!');
+        $rules = [
+            'alamat' => 'required|string',
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'tanggal_lahir' => 'required|date',
+        ];
+
+        if ($request->filled('password')) {
+            $rules['password'] = 'min:6';
+        }
+
+        $request->validate($rules);
+
+        $data = [
+            'alamat' => $request->alamat,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+            'tanggal_lahir' => $request->tanggal_lahir,
+        ];
+
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        $user->update($data);
+        return back()->with('success', 'Profil dan lokasi berhasil diperbarui!');
     }
 
     public function updatePassword(Request $request)
@@ -133,13 +155,13 @@ class AuthController extends Controller
     {
         try {
             $googleUser = \Laravel\Socialite\Facades\Socialite::driver('google')->user();
-            
+
             // 1. Cek apakah google_id ini sudah dipakai akun lain
             $userByGoogleId = User::where('google_id', $googleUser->id)->first();
 
             if (Auth::check()) {
                 $currentUser = Auth::user();
-                
+
                 // Jika google_id sudah dipakai orang lain, jangan tautkan
                 if ($userByGoogleId && $userByGoogleId->id !== $currentUser->id) {
                     return redirect('/member/profile')->withErrors(['email' => 'Akun Google ini sudah tertaut dengan akun lain.']);
@@ -147,7 +169,7 @@ class AuthController extends Controller
 
                 // Tautkan ke akun saat ini
                 $currentUser->update(['google_id' => $googleUser->id]);
-                
+
                 return redirect('/member/profile')->with('success', 'Akun Google berhasil ditautkan!');
             }
 
@@ -169,7 +191,7 @@ class AuthController extends Controller
                 // Register User Baru
                 $seed = $googleUser->email . uniqid();
                 $hash = strtoupper(substr(hash('sha256', $seed), 0, 8));
-                
+
                 $user = User::create([
                     'name' => $googleUser->name,
                     'email' => $googleUser->email,

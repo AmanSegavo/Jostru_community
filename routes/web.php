@@ -36,7 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:member,admin,superadmin'])->group(function () {
         Route::get('/dashboard', [MemberController::class, 'dashboard'])->name('dashboard');
         Route::get('/profile', [AuthController::class, 'profile'])->name('member.profile');
-        Route::post('/profile', [AuthController::class, 'updateProfile']);
+        Route::post('/profile', [AuthController::class, 'updateProfile'])->name('member.profile.update');
         Route::post('/profile/password', [AuthController::class, 'updatePassword'])->name('member.password.update');
         
         Route::get('/feed', [MemberController::class, 'feed'])->name('member.feed');
@@ -44,10 +44,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/waste-report', [MemberController::class, 'wasteReport'])->name('member.waste_report');
         Route::post('/waste-report', [MemberController::class, 'storeWasteReport'])->name('member.waste_report.store');
 
+        // Kartu Digital Member
+        Route::get('/my-card', [MemberController::class, 'myCardEditor'])->name('member.card.editor');
+        Route::post('/my-card/download', [MemberController::class, 'downloadMyCard'])->name('member.card.download');
+
         // Chat & Call Routes
         Route::get('/chat', [MemberController::class, 'chatList'])->name('member.chat.list');
         Route::get('/chat/{id}', [MemberController::class, 'chatRoom'])->name('member.chat.room');
         Route::post('/chat/{id}/send', [MemberController::class, 'sendMessage'])->name('member.chat.send');
+        Route::get('/chat/{id}/poll', [MemberController::class, 'pollMessages'])->name('member.chat.poll');
         Route::get('/call/{id}', [MemberController::class, 'videoCall'])->name('member.video_call');
         
         Route::post('/api/update-player-id', function(\Illuminate\Http\Request $request) {
@@ -88,7 +93,20 @@ Route::middleware('auth')->group(function () {
         
         Route::get('/messages', [AdminController::class, 'messages'])->name('admin.messages');
         Route::get('/logs', [AdminController::class, 'logs'])->name('admin.logs');
+        
+        // AI Analytics
+        Route::get('/ai-analytics', [AdminController::class, 'aiAnalytics'])->name('admin.ai_analytics');
+
+        // Hasil Produksi (V1.2)
+        Route::get('/productions', [AdminController::class, 'productions'])->name('admin.productions');
+        Route::post('/productions', [AdminController::class, 'storeProduction'])->name('admin.productions.store');
+        Route::delete('/productions/{id}', [AdminController::class, 'destroyProduction'])->name('admin.productions.destroy');
     });
 });
 
 Route::get('/v/{id}', [PublicController::class, 'verify_card'])->name('member.verify');
+Route::post('/api/parse-gmaps', [PublicController::class, 'parseGmapsLink'])->name('api.parse_gmaps');
+
+// API Khusus untuk Google Colab / Python Script
+Route::get('/api/export-waste-data', [AdminController::class, 'exportWasteData'])->name('api.export_waste');
+Route::post('/api/save-ai-results', [AdminController::class, 'saveAiResults'])->name('api.save_ai_results');

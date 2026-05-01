@@ -9,8 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('can_chat')->default(true);
-            $table->string('onesignal_player_id')->nullable(); // Untuk push notif akurat
+            if (!Schema::hasColumn('users', 'can_chat')) {
+                $table->boolean('can_chat')->default(true);
+            }
+            if (!Schema::hasColumn('users', 'onesignal_player_id')) {
+                $table->string('onesignal_player_id')->nullable(); // Untuk push notif akurat
+            }
         });
 
         Schema::create('chats', function (Blueprint $table) {

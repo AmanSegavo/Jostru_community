@@ -269,6 +269,20 @@ CREATE TABLE IF NOT EXISTS `waste_deposits` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------
+-- Table: production_batches
+-- -----------------------------------------------
+CREATE TABLE IF NOT EXISTS `production_batches` (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `product_sku` varchar(255) NOT NULL,
+  `quantity_produced` double(8,2) NOT NULL,
+  `source_waste_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `produced_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------
 -- Table: chats
 -- -----------------------------------------------
 CREATE TABLE IF NOT EXISTS `chats` (

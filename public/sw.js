@@ -1,7 +1,6 @@
 const CACHE_NAME = 'jostru-cache-v1';
 const urlsToCache = [
   '/',
-  '/css/app.css',
   '/images/logo.png'
 ];
 

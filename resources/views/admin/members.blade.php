@@ -180,7 +180,7 @@
                                 @endif
                             </td>
                             <td style="text-align: right;">
-                                <a href="{{ route('admin.preview_card', $member->id) }}" class="action-btn btn-print" title="Cetak Kartu">
+                                <a href="{{ route('admin.card_preview', $member->id) }}" class="action-btn btn-print" title="Cetak Kartu">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 18v4h12v-4M6 18h12"></path></svg>
                                 </a>
                                 <button onclick="openEditModal({{ json_encode($member) }})" class="action-btn btn-edit" title="Edit Profil">
@@ -253,6 +253,16 @@
 
             <div class="form-group">
                 <label>Alamat &amp; Lokasi Peta</label>
+                
+                <!-- Google Maps Link Parser -->
+                <div style="background: rgba(var(--primary-rgb, 99, 102, 241), 0.05); border: 1px solid rgba(var(--primary-rgb, 99, 102, 241), 0.2); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                    <label style="font-size: 12px; font-weight: 600; color: var(--primary); margin-bottom: 6px; display: block;">Tarik Otomatis dari Link Google Maps (Paling Akurat & Mudah)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="addGmapsLink" class="form-control" placeholder="Tempel link (contoh: https://maps.app.goo.gl/...)" style="font-size: 13px;">
+                        <button type="button" id="btn-parse-add" onclick="parseGmapsLink('add')" class="btn btn-primary" style="white-space: nowrap; font-size: 12px; padding: 0 12px;">Tarik Lokasi</button>
+                    </div>
+                </div>
+
                 <div class="address-search-wrapper" id="addSearchWrapper">
                     <svg class="address-search-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                     <input type="text" id="addSearchInput" class="address-search-input" placeholder="Cari nama tempat atau alamat..." autocomplete="off">
@@ -353,6 +363,16 @@
 
             <div class="form-group">
                 <label>Alamat &amp; Lokasi Peta</label>
+                
+                <!-- Google Maps Link Parser -->
+                <div style="background: rgba(var(--primary-rgb, 99, 102, 241), 0.05); border: 1px solid rgba(var(--primary-rgb, 99, 102, 241), 0.2); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                    <label style="font-size: 12px; font-weight: 600; color: var(--primary); margin-bottom: 6px; display: block;">Tarik Otomatis dari Link Google Maps (Paling Akurat & Mudah)</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="editGmapsLink" class="form-control" placeholder="Tempel link (contoh: https://maps.app.goo.gl/...)" style="font-size: 13px;">
+                        <button type="button" id="btn-parse-edit" onclick="parseGmapsLink('edit')" class="btn btn-primary" style="white-space: nowrap; font-size: 12px; padding: 0 12px;">Tarik Lokasi</button>
+                    </div>
+                </div>
+
                 <div class="address-search-wrapper" id="editSearchWrapper">
                     <svg class="address-search-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                     <input type="text" id="editSearchInput" class="address-search-input" placeholder="Cari nama tempat atau alamat..." autocomplete="off">
@@ -657,6 +677,47 @@
     function openDeleteModal(actionUrl) {
         document.getElementById('deleteForm').action = actionUrl;
         document.getElementById('deleteModal').showModal();
+    }
+
+    function parseGmapsLink(prefix) {
+        let inputEl = document.getElementById(prefix + 'GmapsLink');
+        let url = inputEl.value.trim();
+        if (!url) {
+            alert('Silakan tempel (paste) link Google Maps terlebih dahulu.');
+            return;
+        }
+
+        let btn = document.getElementById('btn-parse-' + prefix);
+        let originalText = btn.innerHTML;
+        btn.innerHTML = 'Mengekstrak...';
+        btn.disabled = true;
+
+        fetch('/api/parse-gmaps', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ url: url })
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            if (data.success) {
+                document.getElementById(prefix + '_coord_lat').value = data.lat;
+                document.getElementById(prefix + '_coord_lng').value = data.lng;
+                goToCoord(prefix); // This will update map, marker, and reverse geocode address
+                alert('Berhasil menarik lokasi dari Google Maps!');
+            } else {
+                alert(data.message || 'Gagal mengekstrak koordinat dari link tersebut. Pastikan link valid dari aplikasi Google Maps.');
+            }
+        })
+        .catch(error => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            alert('Terjadi kesalahan koneksi saat mengekstrak link.');
+        });
     }
 </script>
 @endsection

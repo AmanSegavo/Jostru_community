@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Jostru Community')</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=2">
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <meta name="theme-color" content="#22c55e">
     <script>
@@ -77,19 +77,35 @@
         .theme-toggle-btn:hover {
             background-color: var(--bg-color);
         }
-
-        /* Tambahkan di style.css */
-        @media (max-width: 768px) {
-            .navbar .container {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .nav-links {
-                width: 100%;
-                justify-content: center;
-                flex-wrap: wrap;
-            }
+    </style>
+    <style media="(max-width: 768px)">
+        .navbar .container {
+            /* Keep single row on mobile — no column wrap */
+            flex-wrap: nowrap;
+            gap: 8px;
+            padding: 8px 14px !important;
+        }
+        .nav-links {
+            width: auto;
+            justify-content: flex-end;
+            flex-wrap: nowrap;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .navbar-brand img {
+            height: 26px !important;
+        }
+        .navbar-brand span {
+            font-size: 0.95rem;
+        }
+        .navbar .btn {
+            padding: 0.38rem 0.85rem !important;
+            font-size: 0.82rem !important;
+        }
+        .theme-toggle-btn {
+            width: 32px !important;
+            height: 32px !important;
+            margin-left: 4px !important;
         }
     </style>
     @stack('styles')
@@ -149,7 +165,7 @@
         <div style="margin-bottom: 1.5rem;">
             <a href="https://www.instagram.com/jostru_community/" target="_blank" class="text-muted" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 600;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-instagram"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-                @jostru_community
+                &#64;jostru_community
             </a>
         </div>
         &copy; {{ date('Y') }} Jostru Community. All rights reserved.
@@ -180,6 +196,50 @@
         document.addEventListener('DOMContentLoaded', updateThemeIcon);
         updateThemeIcon(); // Run immediately for fast render
     </script>
+
+    @auth
+    <!-- Mobile Bottom Navigation (Visible only on mobile for logged in users) -->
+    <nav class="bottom-nav d-md-none" style="display: none;">
+        <div class="bottom-nav-container">
+            @if(in_array(auth()->user()->role, ['admin', 'superadmin']))
+                <a href="{{ route('admin.dashboard') }}" class="bottom-nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    <span>Dasbor</span>
+                </a>
+                <a href="{{ route('admin.waste_deposits') }}" class="bottom-nav-item {{ request()->routeIs('admin.waste_deposits') ? 'active' : '' }}">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Limbah</span>
+                </a>
+                <a href="{{ route('admin.productions') }}" class="bottom-nav-item {{ request()->routeIs('admin.productions') ? 'active' : '' }}">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                    <span>Produksi</span>
+                </a>
+                <a href="{{ route('admin.members') }}" class="bottom-nav-item {{ request()->routeIs('admin.members') ? 'active' : '' }}">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <span>Anggota</span>
+                </a>
+            @else
+                <a href="{{ route('dashboard') }}" class="bottom-nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    <span>Beranda</span>
+                </a>
+                <a href="{{ route('member.waste_report') }}" class="bottom-nav-item {{ request()->routeIs('member.waste_report') ? 'active' : '' }}">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Setor</span>
+                </a>
+                <a href="{{ route('member.feed') }}" class="bottom-nav-item {{ request()->routeIs('member.feed') ? 'active' : '' }}">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
+                    <span>Feed</span>
+                </a>
+            @endif
+            <a href="{{ route('member.profile') }}" class="bottom-nav-item {{ request()->routeIs('member.profile') ? 'active' : '' }}">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <span>Profil</span>
+            </a>
+        </div>
+    </nav>
+
+    @endauth
 
     @stack('scripts')
 </body>

@@ -33,22 +33,36 @@
         .btn-glow:hover {
             box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
         }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(8px); }
+        }
+
+        @media (max-width: 768px) {
+            .text-5xl { font-size: 2.2rem !important; }
+            .hero { padding: 30px 0 !important; }
+        }
     </style>
 @endpush
 
-<div class="hero" style="min-height: 90vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(34, 197, 94, 0.08) 0%, transparent 70%); overflow: hidden;">
+<div class="hero" style="min-height: 80vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(34, 197, 94, 0.08) 0%, transparent 70%); overflow: hidden; padding: 40px 0;">
     <div class="container text-center">
-        <div class="floating-logo mb-4">
-            <img src="{{ asset('images/logo.png') }}" alt="Jostru Logo" style="width: 120px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));">
+        <div class="floating-logo mb-3">
+            <img src="{{ asset('images/logo.png') }}" alt="Jostru Logo" style="width: 90px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));">
         </div>
-        <div style="display: inline-block; padding: 5px 15px; border-radius: 20px; background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.2); font-weight: 800; margin-bottom: 20px; font-size: 0.9rem; letter-spacing: 2px;">
-            PENGELOLAAN LIMBAH & LINGKUNGAN
+        <div style="display: inline-block; padding: 4px 14px; border-radius: 20px; background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.2); font-weight: 800; margin-bottom: 16px; font-size: 0.85rem; letter-spacing: 2px;">
+            PENGELOLAAN LIMBAH &amp; LINGKUNGAN
         </div>
-        <h1 class="text-5xl mb-4" style="line-height: 1.1; font-weight: 800;">Ubah Limbah Menjadi<br><span style="color: #22c55e; background: linear-gradient(90deg, #22c55e, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Masa Depan Hijau</span></h1>
-        <p style="font-size: 1.25rem; color: var(--text-secondary); max-width: 700px; margin: 0 auto 2.5rem; line-height: 1.8;">Bergabunglah dengan komunitas Jostru untuk mengelola limbah rumah tangga Anda secara cerdas, mendapatkan edukasi daur ulang, dan berkontribusi langsung bagi kelestarian bumi.</p>
-        <div class="flex justify-center gap-4 mt-4" style="flex-wrap: wrap;">
-            <a href="{{ route('register') }}" class="btn btn-primary btn-glow" style="padding: 1.2rem 2.5rem; font-size: 1.1rem; border-radius: 50px; background: #22c55e; border: none; font-weight: 700;">Daftar Sekarang</a>
-            <a href="#download" class="btn btn-outline" style="padding: 1.2rem 2.5rem; font-size: 1.1rem; border-radius: 50px; font-weight: 700;">Unduh Aplikasi</a>
+        <h1 class="text-5xl mb-3" style="line-height: 1.1; font-weight: 800;">Ubah Limbah Menjadi<br><span style="color: #22c55e; background: linear-gradient(90deg, #22c55e, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Masa Depan Hijau</span></h1>
+        <p style="font-size: 1.1rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto 2rem; line-height: 1.7;">Bergabunglah dengan komunitas Jostru untuk mengelola limbah rumah tangga Anda secara cerdas dan berkontribusi bagi kelestarian bumi.</p>
+        <div class="flex justify-center gap-4 mt-2" style="flex-wrap: wrap;">
+            <a href="{{ route('register') }}" class="btn btn-primary btn-glow" style="padding: 1rem 2.2rem; font-size: 1.05rem; border-radius: 50px; background: linear-gradient(135deg, #22c55e, #10b981); border: none; font-weight: 700; box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);">🌿 Daftar Sekarang</a>
+            <a href="#download" class="btn btn-outline" style="padding: 1rem 2.2rem; font-size: 1.05rem; border-radius: 50px; font-weight: 700;">📱 Unduh Aplikasi</a>
+        </div>
+        {{-- Scroll indicator --}}
+        <div style="margin-top: 2.5rem; animation: bounce 2s ease-in-out infinite; opacity: 0.5;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
     </div>
 </div>

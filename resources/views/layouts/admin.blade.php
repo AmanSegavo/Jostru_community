@@ -16,11 +16,28 @@
         .admin-sidebar {
             width: 280px;
             flex-shrink: 0;
-            padding: 2rem 1.5rem;
+            padding: 2.5rem 1.5rem;
             height: max-content;
             border-radius: var(--radius-lg);
             position: sticky;
             top: 100px;
+            background: var(--surface-color);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        .admin-sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(var(--primary-h), var(--primary-s), var(--primary-l), 0.05), transparent);
+            pointer-events: none;
         }
 
         .admin-content {
@@ -61,6 +78,7 @@
             background: linear-gradient(to bottom, var(--primary), var(--secondary));
             border-top-right-radius: 4px;
             border-bottom-right-radius: 4px;
+            box-shadow: 2px 0 8px rgba(var(--primary-h), var(--primary-s), var(--primary-l), 0.5);
         }
 
         h3.menu-title {
@@ -100,6 +118,12 @@
                     class="nav-item {{ request()->routeIs('admin.members') ? 'active' : '' }}">Manajemen Anggota</a>
                 <a href="{{ route('admin.waste_deposits') }}"
                     class="nav-item {{ request()->routeIs('admin.waste_deposits') ? 'active' : '' }}">Setoran Limbah</a>
+                <a href="{{ route('admin.productions') }}"
+                    class="nav-item {{ request()->routeIs('admin.productions') ? 'active' : '' }}">Hasil Produksi (V1.2)</a>
+                <a href="{{ route('admin.ai_analytics') }}"
+                    class="nav-item {{ request()->routeIs('admin.ai_analytics') ? 'active' : '' }}">
+                    <span style="color: var(--primary);">✨ Analisis AI (Colab)</span>
+                </a>
                 <a href="{{ route('admin.posts') }}"
                     class="nav-item {{ request()->routeIs('admin.posts') ? 'active' : '' }}">Community Feed</a>
                 <a href="{{ route('admin.events') }}"

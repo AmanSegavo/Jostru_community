@@ -1,1 +1,6 @@
 *.sqlite*
+echo ftp_env_debug.ps1 >> .gitignore
+echo ftp_env_deploy.ps1 >> .gitignore
+echo ftp_env_final.ps1 >> .gitignore
+echo ftp_env_real_fixed.ps1 >> .gitignore
+echo htdocs_env.txt >> .gitignore

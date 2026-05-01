@@ -33,7 +33,7 @@ class AdminController extends Controller
                 ->whereYear('transaction_date', $date->year)
                 ->whereMonth('transaction_date', $date->month)
                 ->sum('amount');
-                
+
             $pengeluaran = \App\Models\Finance::where('type', 'PENGELUARAN')
                 ->whereYear('transaction_date', $date->year)
                 ->whereMonth('transaction_date', $date->month)
@@ -57,10 +57,10 @@ class AdminController extends Controller
         $query = User::where('role', 'member');
         if ($request->has('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('member_id', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('member_id', 'like', "%{$search}%");
             });
         }
         $members = $query->latest()->get();
@@ -73,16 +73,16 @@ class AdminController extends Controller
         $filename = "Data_Anggota_Jostru_" . date('Y-m-d') . ".csv";
 
         $headers = [
-            "Content-type"        => "text/csv",
+            "Content-type" => "text/csv",
             "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
         ];
 
         $columns = ['ID_Member', 'Nama', 'Email', 'Jabatan', 'Status', 'Tanggal_Lahir', 'Alamat', 'Tanggal_Daftar'];
 
-        $callback = function() use($members, $columns) {
+        $callback = function () use ($members, $columns) {
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
             foreach ($members as $user) {
@@ -232,13 +232,13 @@ class AdminController extends Controller
     public function finances(Request $request)
     {
         $query = \App\Models\Finance::with('user');
-        
+
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('type', 'like', "%{$search}%")
-                  ->orWhere('kategori', 'like', "%{$search}%");
+                    ->orWhere('type', 'like', "%{$search}%")
+                    ->orWhere('kategori', 'like', "%{$search}%");
             });
         }
 
@@ -260,7 +260,7 @@ class AdminController extends Controller
             ->select('kategori', \DB::raw('SUM(amount) as total'))
             ->groupBy('kategori')
             ->get();
-            
+
         $pengeluaranPerKategori = \App\Models\Finance::where('type', 'PENGELUARAN')
             ->select('kategori', \DB::raw('SUM(amount) as total'))
             ->groupBy('kategori')
@@ -277,12 +277,12 @@ class AdminController extends Controller
             ->sum('amount');
 
         $finances = $query->orderBy('transaction_date', 'desc')->latest()->paginate(15);
-        $finances->appends($request->all()); 
-        
+        $finances->appends($request->all());
+
         return view('admin.finances', compact(
-            'finances', 
-            'totalPemasukan', 
-            'totalPengeluaran', 
+            'finances',
+            'totalPemasukan',
+            'totalPengeluaran',
             'saldo',
             'pemasukanPerKategori',
             'pengeluaranPerKategori',
@@ -297,16 +297,16 @@ class AdminController extends Controller
         $filename = "Laporan_Keuangan_Jostru_" . date('Y-m-d') . ".csv";
 
         $headers = [
-            "Content-type"        => "text/csv",
+            "Content-type" => "text/csv",
             "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
         ];
 
         $columns = ['Tanggal', 'Jenis', 'Keterangan', 'Nominal', 'Penginput'];
 
-        $callback = function() use($finances, $columns) {
+        $callback = function () use ($finances, $columns) {
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
             foreach ($finances as $finance) {
@@ -430,11 +430,11 @@ class AdminController extends Controller
                 'margin' => 0,
                 'format' => 'png'
             ]);
-            
+
             if (!$qrResponse->successful()) {
                 throw new \Exception('API Error');
             }
-            
+
             $qrImage = $manager->read($qrResponse->body());
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal memuat QR Code: Aktifkan ekstensi php_imagick atau pastikan terhubung ke internet.');
@@ -509,7 +509,8 @@ class AdminController extends Controller
                 'margin' => 0,
                 'format' => 'png'
             ]);
-            if (!$qrResponse->successful()) throw new \Exception('API Error');
+            if (!$qrResponse->successful())
+                throw new \Exception('API Error');
             $qrImage = $manager->decode($qrResponse->body());
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal memuat QR Code: Aktifkan ekstensi php_imagick atau cek internet.');
@@ -523,7 +524,7 @@ class AdminController extends Controller
         // Parse custom X Y coordinates
         $namaX = (int) $request->input('nama_x', 530);
         $namaY = (int) $request->input('nama_y', 460);
-        
+
         $idX = (int) $request->input('id_x', 530);
         $idY = (int) $request->input('id_y', 560);
 
@@ -632,7 +633,7 @@ class AdminController extends Controller
     {
         $deposit = WasteDeposit::findOrFail($id);
         $deposit->update(['status' => $request->status]);
-        
+
         return back()->with('success', 'Status setoran berhasil diperbarui.');
     }
 
@@ -640,5 +641,135 @@ class AdminController extends Controller
     {
         WasteDeposit::findOrFail($id)->delete();
         return back()->with('success', 'Data setoran dihapus.');
+    }
+
+    // AI & Analytics Integration
+    public function aiAnalytics()
+    {
+        // Membaca laporan terbaru yang dikirim dari Colab
+        $resultsPath = storage_path('app/private/ai_results.json');
+        $aiData = null;
+        if (file_exists($resultsPath)) {
+            $aiData = json_decode(file_get_contents($resultsPath), true);
+        }
+
+        return view('admin.ai_analytics', compact('aiData'));
+    }
+
+    public function saveAiResults(Request $request)
+    {
+        // Simple token protection
+        if ($request->query('token') !== 'jostru-ai-123') {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $request->validate([
+            'summary' => 'required|array',
+            'predictions' => 'nullable|array',
+            'chart_base64' => 'required|string',
+            'insights' => 'required|string'
+        ]);
+
+        $data = [
+            'timestamp' => now()->format('Y-m-d H:i:s'),
+            'summary' => $request->summary,
+            'predictions' => $request->predictions,
+            'chart_base64' => $request->chart_base64,
+            'insights' => $request->insights
+        ];
+
+        // Ensure private storage directory exists
+        if (!file_exists(storage_path('app/private'))) {
+            mkdir(storage_path('app/private'), 0755, true);
+        }
+
+        file_put_contents(storage_path('app/private/ai_results.json'), json_encode($data));
+
+        return response()->json(['status' => 'success', 'message' => 'Laporan AI berhasil disimpan di server.']);
+    }
+
+    public function exportWasteData(Request $request)
+    {
+        // Simple token protection (optional)
+        if ($request->query('token') !== 'jostru-ai-123') {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $data = WasteDeposit::with('user')->get()->map(function ($deposit) {
+            return [
+                'id' => $deposit->id,
+                'user_name' => $deposit->user ? $deposit->user->name : 'Unknown',
+                'type' => $deposit->type,
+                'weight_kg' => $deposit->weight,
+                'status' => $deposit->status,
+                'date' => $deposit->created_at->format('Y-m-d H:i:s'),
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'count' => $data->count(),
+            'data' => $data
+        ]);
+    }
+
+    // --- HASIL PRODUKSI (V1.2) ---
+    public function productions()
+    {
+        $productions = \App\Models\ProductionBatch::with('sourceWaste.user')->latest()->paginate(15);
+        $approvedWastes = WasteDeposit::where('status', 'APPROVED')->get();
+        return view('admin.productions', compact('productions', 'approvedWastes'));
+    }
+
+    public function storeProduction(Request $request)
+    {
+        $request->validate([
+            'product_sku' => 'required|string|max:255',
+            'quantity_produced' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+            'source_waste_id' => 'nullable|exists:waste_deposits,id',
+            'produced_at' => 'required|date'
+        ]);
+
+        $batch = \App\Models\ProductionBatch::create($request->all());
+
+        if ($request->filled('source_waste_id')) {
+            $waste = WasteDeposit::find($request->source_waste_id);
+            if ($waste) {
+                $waste->update(['status' => 'PROCESSED']); // Tandai limbah sudah diolah
+            }
+        }
+
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'TAMBAH HASIL PRODUKSI',
+            'description' => 'Mencatat ' . $request->quantity_produced . ' unit untuk SKU ' . $request->product_sku . ' dengan harga Rp ' . number_format($request->price, 0, ',', '.')
+        ]);
+
+        return back()->with('success', 'Catatan hasil produksi berhasil ditambahkan.');
+    }
+
+    public function destroyProduction($id)
+    {
+        $batch = \App\Models\ProductionBatch::findOrFail($id);
+
+        // Kembalikan status limbah jika dihapus
+        if ($batch->source_waste_id) {
+            $waste = WasteDeposit::find($batch->source_waste_id);
+            if ($waste && $waste->status === 'PROCESSED') {
+                $waste->update(['status' => 'APPROVED']);
+            }
+        }
+
+        $sku = $batch->product_sku;
+        $batch->delete();
+
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'HAPUS PRODUKSI',
+            'description' => 'Menghapus catatan produksi SKU: ' . $sku
+        ]);
+
+        return back()->with('success', 'Catatan produksi berhasil dihapus.');
     }
 }

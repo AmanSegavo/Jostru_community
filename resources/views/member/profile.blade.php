@@ -75,13 +75,27 @@
                             </button>
                         </div>
                         
+                        <!-- Google Maps Link Parser -->
+                        <div class="mb-3 p-3" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px;">
+                            <label class="form-label" style="font-size: 13px; color: var(--primary); font-weight: 600;">
+                                Lokasi Sulit Ditemukan? Ekstrak dari Google Maps (Gratis & Akurat)
+                            </label>
+                            <div class="d-flex gap-2">
+                                <input type="text" id="gmapsLink" class="form-control" placeholder="Paste Link Google Maps (Buka Google Maps > Cari Rumah > Klik Bagikan > Salin Link)" style="font-size: 13px; background: transparent; border: 1px solid var(--border-color); color: var(--text-color);">
+                                <button type="button" id="btn-parse-gmaps" class="btn btn-primary" style="white-space: nowrap; font-size: 13px;">Tarik Lokasi</button>
+                            </div>
+                            <small class="d-block mt-2" style="color: var(--text-secondary); font-size: 11px;">
+                                Tempel URL `https://maps.app.goo.gl/...` di atas untuk otomatis memindahkan jarum merah ke lokasi rumah Anda tanpa harus mencari ulang di peta.
+                            </small>
+                        </div>
+
                         <div id="selfMap" class="mb-3" style="height: 350px; width: 100%; border-radius: 8px; border: 1px solid var(--border-color); z-index: 1;"></div>
                         
                         <textarea name="alamat" id="alamatDetailed" class="form-control mt-3" rows="2" required placeholder="Detail Alamat (Jalan Mawar No 10...)" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color);">{{ $user->alamat }}</textarea>
                         
                         <div class="mt-2 p-2" style="background: rgba(var(--primary-rgb), 0.05); border-radius: 6px; border-left: 3px solid var(--primary);">
                             <small class="d-block" style="color: var(--text-color); font-size: 12px;">
-                                <strong>Tips Akurasi:</strong> Klik tombol GPS di atas untuk akurasi terbaik dari ponsel Anda. Geser pin merah tepat di atas atap rumah Anda pada peta.
+                                <strong>Tips:</strong> Tarik otomatis dari Google Maps menggunakan link (cara termudah), klik tombol GPS ponsel, atau geser jarum merah secara manual di atas atap rumah Anda pada peta.
                             </small>
                         </div>
                     </div>
@@ -152,6 +166,45 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
         );
+    });
+
+    // Google Maps Link Parser
+    document.getElementById('btn-parse-gmaps').addEventListener('click', function() {
+        let url = document.getElementById('gmapsLink').value.trim();
+        if (!url) {
+            alert('Silakan tempel (paste) link Google Maps terlebih dahulu.');
+            return;
+        }
+
+        let btn = this;
+        let originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Mengekstrak...';
+        btn.disabled = true;
+
+        fetch('/api/parse-gmaps', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ url: url })
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            if (data.success) {
+                updatePosition(data.lat, data.lng, null, 18);
+                alert('Berhasil menarik lokasi dari Google Maps!');
+            } else {
+                alert(data.message || 'Gagal mengekstrak koordinat dari link tersebut. Pastikan link valid dari aplikasi Google Maps.');
+            }
+        })
+        .catch(error => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            alert('Terjadi kesalahan koneksi saat mengekstrak link.');
+        });
     });
 
     function updatePosition(lat, lng, address = null, zoom = null) {
