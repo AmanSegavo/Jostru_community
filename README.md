@@ -1,58 +1,44 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Jostru Community System 🌍♻️
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)
+![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white)
+![Python Integration](https://img.shields.io/badge/Python_Colab_Ready-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![OAuth2](https://img.shields.io/badge/Google_SSO-4285F4?style=for-the-badge&logo=google&logoColor=white)
 
-## About Laravel
+Jostru Community System is an integrated web and mobile-ready platform designed for environmental management, community engagement, and resource tracking. Built with a robust Laravel backend, it handles everything from community social feeds and digital membership generation to complex waste deposit tracking and AI-driven analytics integrations.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Developed by **Aman Techsolution**.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## ✨ Key Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 👥 Community & Membership Management
+- **Role-Based Access Control (RBAC):** Tiered access for Superadmins, Admins, and Members.
+- **Google SSO Integration:** Seamless 1-click authentication using Google OAuth2.
+- **Dynamic Digital ID Cards:** Automated generation of downloadable Member Cards in PDF and PNG formats.
+- **Social Feed & Real-time Chat:** Community timeline with likes, comments, media uploads, and private messaging systems.
 
-## Learning Laravel
+### ♻️ Environmental & Waste Management
+- **Waste Deposit Tracking:** Systematic recording of waste deposits with weight metrics, status tracking (Pending/Approved), and media proof uploads.
+- **Production Batches Lifecycle:** Converts logged waste deposits into actionable production batches with SKU and pricing metrics.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 📊 AI Analytics & Data Science Ready
+- **Colab/Python Endpoints:** Dedicated API routes (`/api/export-waste-data` and `/api/save-ai-results`) to seamlessly pipe data to Google Colab or Python environments for machine learning models and data classification.
+- **Developer Diagnostics API:** Secure, token-protected `/api/dev/*` endpoints for remote server pinging, log reading, and direct SQL querying without requiring SSH/FTP access.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 💰 Financial & Operational Dashboard
+- **Cashflow Management:** Granular tracking of income and operational expenses with automated ledger logging.
+- **Activity Logging:** Comprehensive audit trails capturing every user action, IP address, and system modification for tight security and accountability.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## 🛠️ Tech Stack & Architecture
 
-## Agentic Development
+- **Backend:** Laravel (PHP 8.x)
+- **Database:** MySQL/MariaDB 
+- **Authentication:** Laravel Sanctum / Google Socialite
+- **Notifications:** OneSignal Push Notifications integration
+- **Media:** Advanced handling for high-resolution images and videos with structural DB logging.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## 🚀 Installation & Setup
 
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
-```
-
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+1. Clone the repository:
+   ```bash
+   git clone [https://github.com/AmanSegavo/Jostru_community.git](https://github.com/AmanSegavo/Jostru_community.git)
