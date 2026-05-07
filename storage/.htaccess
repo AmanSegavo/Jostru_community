@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+</IfModule>
+
+# Izinkan akses ke file gambar dan video
+<FilesMatch "\.(jpg|jpeg|png|gif|mp4|mov|avi|webm|webp)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Jangan tampilkan daftar isi folder
+Options -Indexes
+
+# Izinkan akses ke semua file di folder ini
+Require all granted

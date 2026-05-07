@@ -1,0 +1,3 @@
+# 
+
+Columns in posts table:<br>- id (bigint(20) unsigned)<br>- user_id (bigint(20) unsigned)<br>- content (text)<br>- media_path (varchar(255))<br>- media_type (enum('image','video'))<br>- file_size (int(10) unsigned)<br>- created_at (timestamp)<br>- updated_at (timestamp)<br>

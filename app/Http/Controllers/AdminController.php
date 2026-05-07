@@ -173,6 +173,13 @@ class AdminController extends Controller
             'longitude' => $request->longitude,
             'member_id' => $request->member_id ?: $user->member_id,
         ];
+        if ($request->has('can_post') && \Illuminate\Support\Facades\Schema::hasColumn('users', 'can_post')) {
+            $data['can_post'] = $request->can_post;
+        }
+
+        if ($request->has('can_comment') && \Illuminate\Support\Facades\Schema::hasColumn('users', 'can_comment')) {
+            $data['can_comment'] = $request->can_comment;
+        }
 
         if ($request->has('can_chat') && \Illuminate\Support\Facades\Schema::hasColumn('users', 'can_chat')) {
             $data['can_chat'] = $request->can_chat;
@@ -217,15 +224,20 @@ class AdminController extends Controller
 
     public function messages()
     {
-        // Mengambil pesan kontak
-        $messages = Contact::latest()->paginate(10);
+        $messages = Contact::latest()->paginate(15);
         return view('admin.messages', compact('messages'));
+    }
+
+    public function markMessageAsRead($id)
+    {
+        $msg = Contact::findOrFail($id);
+        $msg->update(['is_read' => true]);
+        return back()->with('success', 'Pesan ditandai sudah dibaca.');
     }
 
     public function logs()
     {
-        // Mengambil log aktivitas
-        $logs = ActivityLog::with('user')->latest()->paginate(10);
+        $logs = ActivityLog::with('user')->latest()->paginate(50);
         return view('admin.logs', compact('logs'));
     }
 
@@ -470,7 +482,7 @@ class AdminController extends Controller
             $font->color('#ffffff');
         });
 
-        $encoded = $image->encodeUsingFileExtension('jpg');
+        $encoded = $image->toJpeg(85);
 
         // 6. Kalau requestnya minta didownload (dari tombol pratinjau)
         if ($request->has('download')) {
@@ -517,7 +529,7 @@ class AdminController extends Controller
         }
 
         // Always put QR in absolute place since it's an image element
-        $image->insert($qrImage, 1114, 720);
+        $image->place($qrImage, 'top-left', 1114, 720);
 
         $fontPath = public_path('fonts/arial.ttf');
 
@@ -555,7 +567,7 @@ class AdminController extends Controller
             $font->align(vertical: 'top');
         });
 
-        $encoded = $image->encodeUsingFileExtension('jpg');
+        $encoded = $image->toJpeg(85);
 
         return response($encoded->toString())
             ->header('Content-Type', 'image/jpeg')
@@ -565,35 +577,197 @@ class AdminController extends Controller
     // Posts Management
     public function posts()
     {
-        $posts = Post::with('user')->latest()->paginate(15);
+        // Tambahkan 'likes' dan 'comments' di dalam with()
+        $posts = \App\Models\Post::with(['user', 'likes', 'comments'])->latest()->paginate(15);
         return view('admin.posts', compact('posts'));
     }
 
     public function storePost(Request $request)
     {
         $request->validate([
-            'content' => 'required',
-            'image' => 'nullable|image|max:2048'
+            'content'  => 'required|string',
+            'image'    => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm|max:102400',
+            'link_url' => 'nullable|url',
+            'tags'     => 'nullable|string|max:255',
         ]);
 
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('posts', 'public');
+        $mediaPath = null;
+        $mediaType = null;
+
+        if ($request->hasFile('image') && $request->file('image')->isValid()) {
+            $file = $request->file('image');
+
+            // Simpan ke public/feed — fallback ke storage jika gagal
+            $destinationPath = public_path('feed');
+            if (!file_exists($destinationPath)) {
+                @mkdir($destinationPath, 0777, true);
+            }
+
+            $ext      = $file->getClientOriginalExtension();
+            $fileName = date('YmdHis') . '_' . uniqid() . '.' . $ext;
+
+            // Coba copy langsung
+            if (@copy($file->getRealPath(), $destinationPath . '/' . $fileName)) {
+                @chmod($destinationPath . '/' . $fileName, 0644);
+                $mediaPath = $fileName;
+            } else {
+                // Fallback: pakai move() bawaan Laravel
+                try {
+                    $file->move($destinationPath, $fileName);
+                    $mediaPath = $fileName;
+                } catch (\Exception $e) {
+                    return back()->with('error', 'Gagal menyimpan file: ' . $e->getMessage());
+                }
+            }
+
+            $mime = $file->getClientMimeType();
+            $mediaType = str_starts_with($mime, 'video') ? 'video' : 'image';
         }
 
         Post::create([
-            'user_id' => auth()->id(),
-            'content' => $request->content,
-            'image_path' => $imagePath
+            'user_id'    => auth()->id(),
+            'content'    => $request->content,
+            'media_path' => $mediaPath,
+            'media_type' => $mediaType,
+            'link_url'   => $request->link_url ?: null,
+            'tags'       => $request->tags ? implode(',', array_map('trim', explode(',', $request->tags))) : null,
+            'pinned'     => $request->boolean('pinned'),
         ]);
 
-        return back()->with('success', 'Postingan berhasil dibagikan.');
+        return back()->with('success', 'Postingan berhasil dibuat!');
+    }
+
+    public function updatePost(Request $request, $id)
+    {
+        $request->validate([
+            'content'  => 'required|string',
+            'image'    => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm|max:102400',
+            'link_url' => 'nullable|url',
+            'tags'     => 'nullable|string|max:255',
+        ]);
+
+        $post = Post::findOrFail($id);
+        $data = [
+            'content'  => $request->content,
+            'link_url' => $request->link_url ?: null,
+            'tags'     => $request->tags ? implode(',', array_map('trim', explode(',', $request->tags))) : null,
+            'pinned'   => $request->boolean('pinned'),
+        ];
+
+        if ($request->hasFile('image') && $request->file('image')->isValid()) {
+            $file = $request->file('image');
+            $destinationPath = public_path('feed');
+            if (!file_exists($destinationPath)) {
+                @mkdir($destinationPath, 0777, true);
+            }
+            $ext      = $file->getClientOriginalExtension();
+            $fileName = date('YmdHis') . '_' . uniqid() . '.' . $ext;
+
+            if (@copy($file->getRealPath(), $destinationPath . '/' . $fileName)) {
+                @chmod($destinationPath . '/' . $fileName, 0644);
+            } else {
+                $file->move($destinationPath, $fileName);
+            }
+            // Hapus media lama
+            if ($post->media_path && file_exists(public_path('feed/' . $post->media_path))) {
+                @unlink(public_path('feed/' . $post->media_path));
+            }
+            $data['media_path'] = $fileName;
+            $data['media_type'] = str_starts_with($file->getClientMimeType(), 'video') ? 'video' : 'image';
+        }
+
+        if ($request->boolean('remove_media')) {
+            if ($post->media_path && file_exists(public_path('feed/' . $post->media_path))) {
+                @unlink(public_path('feed/' . $post->media_path));
+            }
+            $data['media_path'] = null;
+            $data['media_type'] = null;
+        }
+
+        $post->update($data);
+        return back()->with('success', 'Postingan berhasil diperbarui!');
     }
 
     public function destroyPost($id)
     {
-        Post::findOrFail($id)->delete();
+        $post = Post::findOrFail($id);
+        if ($post->media_path && file_exists(public_path('feed/' . $post->media_path))) {
+            @unlink(public_path('feed/' . $post->media_path));
+        }
+        $post->delete();
         return back()->with('success', 'Postingan dihapus.');
+    }
+
+    // --- Media CMS Management ---
+    public function media()
+    {
+        $mediaPath = public_path('media');
+        if (!file_exists($mediaPath)) {
+            mkdir($mediaPath, 0755, true);
+        }
+
+        $files = array_diff(scandir($mediaPath), array('..', '.'));
+        $mediaFiles = [];
+
+        foreach ($files as $file) {
+            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+            $type = in_array($ext, ['mp4', 'mov', 'avi']) ? 'video' : 'image';
+            $size = filesize($mediaPath . '/' . $file);
+            $mediaFiles[] = [
+                'name' => $file,
+                'type' => $type,
+                'size' => round($size / 1048576, 2) . ' MB', // in MB
+                'url' => asset('media/' . $file)
+            ];
+        }
+
+        return view('admin.media', compact('mediaFiles'));
+    }
+
+    public function storeMedia(Request $request)
+    {
+        $request->validate([
+            'media' => 'required|file|mimes:jpg,jpeg,png,mp4,mov,avi|max:102400' // Up to 100MB
+        ]);
+
+        if ($request->hasFile('media')) {
+            $file = $request->file('media');
+            if ($file->isValid()) {
+                $destinationPath = public_path('media');
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0755, true);
+                }
+                
+                $fileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_\.-]/', '', $file->getClientOriginalName());
+                $file->move($destinationPath, $fileName);
+
+                \App\Models\ActivityLog::create([
+                    'user_id' => auth()->id(),
+                    'action' => 'UPLOAD MEDIA',
+                    'description' => 'Mengunggah file media resolusi tinggi: ' . $fileName
+                ]);
+
+                return back()->with('success', 'Media berhasil diunggah.');
+            }
+        }
+        return back()->with('error', 'Gagal mengunggah media.');
+    }
+
+    public function destroyMedia($filename)
+    {
+        $path = public_path('media/' . $filename);
+        if (file_exists($path)) {
+            unlink($path);
+            
+            \App\Models\ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'HAPUS MEDIA',
+                'description' => 'Menghapus file media: ' . $filename
+            ]);
+
+            return back()->with('success', 'Media berhasil dihapus.');
+        }
+        return back()->with('error', 'Media tidak ditemukan.');
     }
 
     // Events Management
@@ -771,5 +945,61 @@ class AdminController extends Controller
         ]);
 
         return back()->with('success', 'Catatan produksi berhasil dihapus.');
+    }
+
+    // --- OAuth Clients Management ---
+    public function oauthClients()
+    {
+        $clients = [];
+        if (class_exists(\Laravel\Passport\Client::class)) {
+            $clients = \Laravel\Passport\Client::where('revoked', false)->get();
+        }
+        return view('admin.oauth_clients', compact('clients'));
+    }
+
+    public function storeOauthClient(Request $request)
+    {
+        $request->validate([
+            'name'     => 'required|string|max:255',
+            'redirect' => 'required|url',
+        ]);
+
+        if (!class_exists(\Laravel\Passport\ClientRepository::class)) {
+            return back()->with('error', 'Laravel Passport belum diinstall.');
+        }
+
+        $clientRepo = app(\Laravel\Passport\ClientRepository::class);
+        $client = $clientRepo->create(
+            null,
+            $request->name,
+            $request->redirect,
+            null,
+            false,
+            false,
+            true
+        );
+
+        \App\Models\ActivityLog::create([
+            'user_id'     => auth()->id(),
+            'action'      => 'BUAT OAUTH CLIENT',
+            'description' => 'Membuat OAuth Client baru: ' . $request->name,
+        ]);
+
+        return back()->with('success', 'OAuth Client berhasil dibuat! Client ID: ' . $client->id . ' | Secret: ' . $client->plainSecret);
+    }
+
+    public function revokeOauthClient($id)
+    {
+        if (class_exists(\Laravel\Passport\Client::class)) {
+            $client = \Laravel\Passport\Client::findOrFail($id);
+            $client->update(['revoked' => true]);
+
+            \App\Models\ActivityLog::create([
+                'user_id'     => auth()->id(),
+                'action'      => 'CABUT OAUTH CLIENT',
+                'description' => 'Mencabut akses OAuth Client: ' . $client->name,
+            ]);
+        }
+        return back()->with('success', 'OAuth Client berhasil dicabut.');
     }
 }

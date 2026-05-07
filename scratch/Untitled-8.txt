@@ -1,0 +1,3 @@
+# 
+
+Tables in database:<br>- activity_logs<br>- cache<br>- cache_locks<br>- chats<br>- comments<br>- contacts<br>- events<br>- failed_jobs<br>- finances<br>- job_batches<br>- jobs<br>- likes<br>- membership_cards<br>- migrations<br>- password_reset_tokens<br>- posts<br>- production_batches<br>- sessions<br>- users<br>- waste_deposits<br>Table 'users' exists.<br>Table 'posts' exists.<br>Table 'activity_logs' exists.<br>Table 'waste_deposits' exists.<br>Table 'finances' exists.<br>Table 'chats' exists.<br>Table 'events' exists.<br>
