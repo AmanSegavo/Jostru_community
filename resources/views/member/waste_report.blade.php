@@ -102,6 +102,7 @@
         </div>
     @endif
 
+    @if($canInput)
     <form action="{{ route('member.waste_report.store') }}" method="POST" enctype="multipart/form-data" id="wasteForm">
         @csrf
         
@@ -114,36 +115,26 @@
                     <div class="mt-2">Ketuk untuk Foto</div>
                 </div>
                 <img id="preview-img" class="d-none w-100 h-100" style="object-fit: cover; position: absolute; top:0; left:0; border-radius: 24px;">
-                <input type="file" name="image" id="mediaInput" accept="image/*,video/*" capture="environment" class="d-none">
+                <input type="file" name="image" id="mediaInput" accept="image/*,video/*" capture="environment" style="opacity: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer; z-index: 10;">
             </label>
         </div>
-
-        <!-- 2. JENIS LIMBAH -->
         <div class="mb-4">
             <h5 class="fw-bold mb-3">2. Jenis Limbah</h5>
-            <input type="hidden" name="type" id="typeInput" value="Organik">
-            <div class="row g-2">
-                <div class="col-6">
-                    <div class="type-btn active" onclick="selectType('Organik', this)">
-                        <span style="font-size: 1.5rem;">🥬</span> Organik
+            @if($categories->count() > 0)
+                <input type="hidden" name="waste_category_id" id="typeInput" value="{{ $categories->first()->id }}">
+                <div class="row g-2">
+                    @foreach($categories as $index => $cat)
+                    <div class="col-6">
+                        <div class="type-btn {{ $index == 0 ? 'active' : '' }}" onclick="selectType('{{ $cat->id }}', this)">
+                            <span style="font-size: 1.5rem;">♻️</span> {{ $cat->name }}
+                            <small style="font-size:0.7rem;">(+{{ $cat->point_multiplier }} Poin/Kg)</small>
+                        </div>
                     </div>
+                    @endforeach
                 </div>
-                <div class="col-6">
-                    <div class="type-btn" onclick="selectType('Anorganik', this)">
-                        <span style="font-size: 1.5rem;">🥤</span> Anorganik
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="type-btn" onclick="selectType('B3', this)">
-                        <span style="font-size: 1.5rem;">🔋</span> B3
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="type-btn" onclick="selectType('Lainnya', this)">
-                        <span style="font-size: 1.5rem;">📦</span> Lainnya
-                    </div>
-                </div>
-            </div>
+            @else
+                <div class="alert alert-warning">Belum ada kategori limbah.</div>
+            @endif
         </div>
 
         <!-- 3. BERAT -->
@@ -165,10 +156,23 @@
             </div>
         </div>
 
-        <button type="submit" class="btn btn-primary w-100 big-btn" id="submitBtn" style="padding: 20px; font-size: 1.3rem; background: #22c55e;">
-            🚀 KIRIM SETORAN
+        <!-- LATITUDE & LONGITUDE (HIDDEN) -->
+        <input type="hidden" name="latitude" id="latInput">
+        <input type="hidden" name="longitude" id="lngInput">
+
+        <div id="locationWarning" class="alert alert-danger text-center mb-3" style="border-radius: 12px; display: none;">
+            ⚠️ Anda harus mengizinkan akses lokasi (GPS) untuk menyetor limbah.
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 big-btn" id="submitBtn" disabled style="padding: 20px; font-size: 1.3rem; background: #22c55e;">
+            🔒 MENDETEKSI LOKASI...
         </button>
     </form>
+    @else
+        <div class="alert alert-warning text-center" style="border-radius: 15px; font-weight: 600; padding: 2rem;">
+            ⚠️ Fitur input limbah mandiri saat ini dinonaktifkan atau Anda tidak memiliki izin. Silakan hubungi Admin.
+        </div>
+    @endif
     
     <hr class="my-5" style="border-color: var(--border-color);">
     
@@ -185,9 +189,16 @@
                 <small class="text-muted">{{ $report->created_at->format('d M, H:i') }}</small>
             </div>
             <div>
-                @if($report->status == 'APPROVED')<span class="badge" style="background:rgba(34,197,94,0.1);color:#22c55e;">DISETUJUI</span>
-                @elseif($report->status == 'REJECTED')<span class="badge" style="background:rgba(239,68,68,0.1);color:#ef4444;">DITOLAK</span>
-                @else<span class="badge" style="background:rgba(245,158,11,0.1);color:#f59e0b;">PENDING</span>@endif
+                @if($report->status == 'APPROVED')
+                    <span class="badge" style="background:rgba(34,197,94,0.1);color:#22c55e;">DISETUJUI</span>
+                    @if($report->points_awarded > 0)
+                        <div class="text-success fw-bold text-end mt-1" style="font-size:0.8rem;">+{{ $report->points_awarded }} Poin</div>
+                    @endif
+                @elseif($report->status == 'REJECTED')
+                    <span class="badge" style="background:rgba(239,68,68,0.1);color:#ef4444;">DITOLAK</span>
+                @else
+                    <span class="badge" style="background:rgba(245,158,11,0.1);color:#f59e0b;">PENDING</span>
+                @endif
             </div>
         </div>
         @empty
@@ -198,12 +209,37 @@
 
 @push('scripts')
 <script>
+    const submitBtn = document.getElementById('submitBtn');
+    const locationWarning = document.getElementById('locationWarning');
+    const latInput = document.getElementById('latInput');
+    const lngInput = document.getElementById('lngInput');
+
+    // Get Geolocation on Load
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                latInput.value = position.coords.latitude;
+                lngInput.value = position.coords.longitude;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 KIRIM SETORAN';
+            },
+            function(error) {
+                locationWarning.style.display = 'block';
+                submitBtn.innerHTML = '🔒 LOKASI DITOLAK';
+            },
+            { enableHighAccuracy: true }
+        );
+    } else {
+        locationWarning.innerHTML = '⚠️ Browser Anda tidak mendukung pelacakan lokasi.';
+        locationWarning.style.display = 'block';
+    }
+
     // Preview Image/Video
     const mediaInput = document.getElementById('mediaInput');
     const previewImg = document.getElementById('preview-img');
     const cameraIcon = document.getElementById('cameraIcon');
 
-    mediaInput.addEventListener('change', function() {
+    mediaInput.addEventListener('change', async function() {
         const file = this.files[0];
         if (!file) return;
 
@@ -228,13 +264,58 @@
         element.classList.add('active');
     }
 
-    // Submit animation
-    document.getElementById('wasteForm').addEventListener('submit', function() {
+    // Submit animation & Image Compression
+    document.getElementById('wasteForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
-        btn.innerHTML = '⏳ MENGIRIM...';
+        btn.innerHTML = '⏳ MEMPROSES...';
         btn.style.opacity = '0.8';
+
+        const formData = new FormData(this);
+        const file = mediaInput.files[0];
+
+        if (file && file.type.startsWith('image/')) {
+            btn.innerHTML = '⏳ MENGOMPRESI FOTO...';
+            try {
+                const options = {
+                    maxSizeMB: 0.5,
+                    maxWidthOrHeight: 1280,
+                    useWebWorker: true
+                };
+                const compressedFile = await imageCompression(file, options);
+                formData.set('image', compressedFile, compressedFile.name);
+            } catch (error) {
+                console.error('Error compressing image:', error);
+            }
+        }
+
+        btn.innerHTML = '🚀 MENGIRIM...';
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }).then(response => {
+            if(response.ok) {
+                window.location.reload();
+            } else {
+                alert('Gagal mengirim setoran. Silakan coba lagi.');
+                btn.disabled = false;
+                btn.innerHTML = '🚀 KIRIM SETORAN';
+                btn.style.opacity = '1';
+            }
+        }).catch(err => {
+            alert('Terjadi kesalahan jaringan.');
+            btn.disabled = false;
+            btn.innerHTML = '🚀 KIRIM SETORAN';
+            btn.style.opacity = '1';
+        });
     });
 </script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js"></script>
 @endpush
 @endsection

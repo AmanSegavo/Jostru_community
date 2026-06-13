@@ -12,14 +12,25 @@ class WasteDeposit extends Model
     protected $fillable = [
         'user_id',
         'type',
+        'waste_category_id',
+        'points_awarded',
         'weight',
         'description',
         'status',
-        'image_path'
+        'media_path',
+        'media_type',
+        'file_size',
+        'latitude',
+        'longitude'
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(WasteCategory::class, 'waste_category_id');
     }
 }

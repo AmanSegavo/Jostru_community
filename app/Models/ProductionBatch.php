@@ -10,6 +10,7 @@ class ProductionBatch extends Model
     use HasFactory;
 
     protected $fillable = [
+        'division_id',
         'product_sku',
         'quantity_produced',
         'price',
@@ -24,5 +25,10 @@ class ProductionBatch extends Model
     public function sourceWaste()
     {
         return $this->belongsTo(WasteDeposit::class, 'source_waste_id');
+    }
+
+    public function division()
+    {
+        return $this->belongsTo(Division::class);
     }
 }

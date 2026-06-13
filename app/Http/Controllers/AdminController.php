@@ -13,7 +13,8 @@ use App\Models\Event;
 use App\Models\WasteDeposit;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
-use Intervention\Image\Typography\FontFactory;
+use App\Models\SystemSetting;
+use App\Models\WasteCategory;
 
 
 class AdminController extends Controller
@@ -54,7 +55,8 @@ class AdminController extends Controller
 
     public function members(Request $request)
     {
-        $query = User::where('role', 'member');
+        // Tampilkan semua pengguna kecuali superadmin, termasuk admin reguler
+        $query = User::where('role', '!=', 'superadmin');
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -64,12 +66,14 @@ class AdminController extends Controller
             });
         }
         $members = $query->latest()->get();
-        return view('admin.members', compact('members'));
+        $interviews = \Illuminate\Support\Facades\DB::table('member_interviews')->get()->keyBy('user_id');
+        $divisions = \App\Models\Division::all();
+        return view('admin.members', compact('members', 'divisions', 'interviews'));
     }
 
     public function exportMembers()
     {
-        $members = User::where('role', 'member')->latest()->get();
+        $members = User::whereNotIn('role', ['admin', 'superadmin'])->latest()->get();
         $filename = "Data_Anggota_Jostru_" . date('Y-m-d') . ".csv";
 
         $headers = [
@@ -109,7 +113,7 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6',
-            'role' => 'required|in:admin,member',
+            'password' => 'required|min:6',
             'jabatan' => 'required|string|max:255',
             'status' => 'required|string|in:AKTIF,TIDAK AKTIF',
             'tanggal_lahir' => 'required|date',
@@ -128,7 +132,7 @@ class AdminController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => \Illuminate\Support\Facades\Hash::make($request->password),
-            'role' => $request->role,
+            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
             'jabatan' => $request->jabatan,
             'status' => $request->status,
             'tanggal_lahir' => $request->tanggal_lahir,
@@ -154,42 +158,66 @@ class AdminController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
-            'role' => 'required|in:admin,member',
             'jabatan' => 'required|string|max:255',
-            'status' => 'required|string|in:AKTIF,TIDAK AKTIF',
+            'status' => 'required|string|in:AKTIF,TIDAK AKTIF,PENDING,NONAKTIF,BANNED',
             'tanggal_lahir' => 'required|date',
             'alamat' => 'required|string',
+            'division_id' => 'nullable|exists:divisions,id',
+            'ktp' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'kk' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'ijazah' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'cv' => 'nullable|file|mimes:pdf|max:5120',
+            'sertifikat' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
+        $finalMemberId = $request->member_id ?: $user->member_id;
+        if (empty($finalMemberId)) {
+            $seed = $request->tanggal_lahir . $request->alamat . uniqid();
+            $hash = strtoupper(substr(hash('sha256', $seed), 0, 8));
+            $finalMemberId = 'JC-' . $hash;
+        }
 
         $data = [
             'name' => $request->name,
             'email' => $request->email,
-            'role' => $request->role,
             'jabatan' => $request->jabatan,
             'status' => $request->status,
             'tanggal_lahir' => $request->tanggal_lahir,
             'alamat' => $request->alamat,
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
-            'member_id' => $request->member_id ?: $user->member_id,
+            'member_id' => $finalMemberId,
         ];
-        if ($request->has('can_post') && \Illuminate\Support\Facades\Schema::hasColumn('users', 'can_post')) {
-            $data['can_post'] = $request->can_post;
+
+        $files = ['ktp', 'kk', 'ijazah', 'cv', 'sertifikat'];
+        foreach ($files as $file) {
+            if ($request->hasFile($file)) {
+                $data[$file.'_path'] = $request->file($file)->store('onboarding_docs', 'public');
+            }
         }
 
-        if ($request->has('can_comment') && \Illuminate\Support\Facades\Schema::hasColumn('users', 'can_comment')) {
-            $data['can_comment'] = $request->can_comment;
-        }
-
-        if ($request->has('can_chat') && \Illuminate\Support\Facades\Schema::hasColumn('users', 'can_chat')) {
-            $data['can_chat'] = $request->can_chat;
+        if ($request->has('division_id')) {
+            $data['division_id'] = $request->division_id;
         }
 
         if ($request->filled('password')) {
             $data['password'] = \Illuminate\Support\Facades\Hash::make($request->password);
         }
 
+        $oldStatus = $user->status;
         $user->update($data);
+
+        if ($oldStatus !== 'AKTIF' && $request->status === 'AKTIF') {
+            \App\Models\Notification::create([
+                'user_id' => $user->id,
+                'title'   => 'Akun Disetujui!',
+                'message' => 'Selamat! Akun Anda telah diverifikasi dan diaktifkan oleh Admin.',
+                'url'     => route('dashboard')
+            ]);
+            
+            \Illuminate\Support\Facades\DB::table('member_interviews')->where('user_id', $user->id)->update([
+                'status' => 'REVIEWED'
+            ]);
+        }
 
         \App\Models\ActivityLog::create([
             'user_id' => auth()->id(),
@@ -203,29 +231,105 @@ class AdminController extends Controller
     public function destroyMember($id)
     {
         $user = User::findOrFail($id);
-        $name = $user->name;
         $user->delete();
-
+        
         \App\Models\ActivityLog::create([
             'user_id' => auth()->id(),
             'action' => 'HAPUS ANGGOTA',
-            'description' => 'Menghapus anggota bernama: ' . $name
+            'description' => 'Menghapus anggota: ' . $user->name
         ]);
 
-        return back()->with('success', 'Anggota berhasil dihapus!');
+        return back()->with('success', 'Data anggota berhasil dihapus!');
+    }
+
+    public function toggleChatAccess($id)
+    {
+        $user = User::findOrFail($id);
+        $user->can_chat = !$user->can_chat;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'can_chat' => $user->can_chat,
+            'message' => 'Akses chat berhasil ' . ($user->can_chat ? 'diaktifkan' : 'dinonaktifkan')
+        ]);
+    }
+
+    public function toggleAppAccess(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        if ($request->has('can_use_app')) {
+            $user->can_use_app = $request->can_use_app;
+        } else {
+            $user->can_use_app = !$user->can_use_app;
+        }
+        $user->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function impersonate($id)
+    {
+        $user = User::findOrFail($id);
+        
+        // Simpan ID admin yang asli di session
+        session()->put('impersonator_id', auth()->id());
+        
+        // Login sebagai user
+        auth()->login($user);
+        
+        \App\Models\ActivityLog::create([
+            'user_id' => session('impersonator_id'),
+            'action' => 'PRATINJAU ANGGOTA',
+            'description' => 'Admin mulai mempratinjau akun: ' . $user->name
+        ]);
+
+        return redirect()->route('dashboard')->with('success', 'Anda sedang mempratinjau halaman sebagai ' . $user->name);
+    }
+
+    public function leaveImpersonate()
+    {
+        if (session()->has('impersonator_id')) {
+            $adminId = session('impersonator_id');
+            $admin = User::findOrFail($adminId);
+            
+            // Login kembali sebagai admin
+            auth()->login($admin);
+            session()->forget('impersonator_id');
+            
+            return redirect()->route('admin.members')->with('success', 'Berhenti pratinjau. Anda kembali sebagai Admin.');
+        }
+        
+        return redirect()->route('dashboard');
     }
 
     public function cards()
     {
-        // Mengambil data kartu beserta relasi user-nya
-        $cards = MembershipCard::with('user')->latest()->paginate(10);
-        return view('admin.cards', compact('cards'));
+        // Menampilkan kartu digital untuk semua anggota yang AKTIF, termasuk admin/pengurus
+        $users = User::where('status', 'AKTIF')
+                     ->latest()
+                     ->paginate(10);
+        return view('admin.cards', compact('users'));
     }
 
     public function messages()
     {
         $messages = Contact::latest()->paginate(15);
-        return view('admin.messages', compact('messages'));
+        
+        $pendingMembers = User::whereNotIn('role', ['admin', 'superadmin'])
+            ->where('status', '!=', 'AKTIF')
+            ->latest()
+            ->get();
+            
+        $interviews = [];
+        foreach ($pendingMembers as $member) {
+            $interview = \Illuminate\Support\Facades\DB::table('member_interviews')->where('user_id', $member->id)->first();
+            if ($interview) {
+                $interviews[$member->id] = $interview;
+            }
+        }
+
+        return view('admin.messages', compact('messages', 'pendingMembers', 'interviews'));
     }
 
     public function markMessageAsRead($id)
@@ -243,7 +347,11 @@ class AdminController extends Controller
 
     public function finances(Request $request)
     {
-        $query = \App\Models\Finance::with('user');
+        $query = \App\Models\Finance::with(['user', 'division', 'budget']);
+
+        if ($request->has('division_id') && !empty($request->division_id)) {
+            $query->where('division_id', $request->division_id);
+        }
 
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
@@ -262,18 +370,24 @@ class AdminController extends Controller
             $query->whereDate('transaction_date', '<=', $request->end_date);
         }
 
+        // Hitung statistik berdasarkan filter (tanpa pagination)
+        $statsQuery = clone $query;
+        $allFinances = $statsQuery->get();
+        
         // Totals
-        $totalPemasukan = \App\Models\Finance::where('type', 'PEMASUKAN')->sum('amount');
-        $totalPengeluaran = \App\Models\Finance::where('type', 'PENGELUARAN')->sum('amount');
+        $totalPemasukan = $allFinances->where('type', 'PEMASUKAN')->sum('amount');
+        $totalPengeluaran = $allFinances->where('type', 'PENGELUARAN')->sum('amount');
         $saldo = $totalPemasukan - $totalPengeluaran;
 
         // Statistics per Category
-        $pemasukanPerKategori = \App\Models\Finance::where('type', 'PEMASUKAN')
+        $catPemasukan = clone $query;
+        $pemasukanPerKategori = $catPemasukan->where('type', 'PEMASUKAN')
             ->select('kategori', \DB::raw('SUM(amount) as total'))
             ->groupBy('kategori')
             ->get();
 
-        $pengeluaranPerKategori = \App\Models\Finance::where('type', 'PENGELUARAN')
+        $catPengeluaran = clone $query;
+        $pengeluaranPerKategori = $catPengeluaran->where('type', 'PENGELUARAN')
             ->select('kategori', \DB::raw('SUM(amount) as total'))
             ->groupBy('kategori')
             ->get();
@@ -288,18 +402,33 @@ class AdminController extends Controller
             ->whereYear('transaction_date', now()->subMonth()->year)
             ->sum('amount');
 
-        $finances = $query->orderBy('transaction_date', 'desc')->latest()->paginate(15);
-        $finances->appends($request->all());
+        if ($request->has('print') && $request->print == 'true') {
+            $finances = $query->orderBy('transaction_date', 'desc')->latest()->get();
+        } else {
+            $finances = $query->orderBy('transaction_date', 'desc')->latest()->paginate(15, ['*'], 'finance_page');
+            $finances->appends($request->all());
+        }
+
+        $divisions = \App\Models\Division::all();
+        
+        $debts = \App\Models\Debt::with('member')->orderBy('due_date', 'asc')->paginate(15, ['*'], 'debt_page');
+        
+        $members = \App\Models\User::where('status', 'AKTIF')->get();
+        $approvedRabs = \App\Models\Rab::where('status', 'APPROVED')->get();
 
         return view('admin.finances', compact(
             'finances',
+            'divisions',
+            'debts',
+            'members',
             'totalPemasukan',
             'totalPengeluaran',
             'saldo',
             'pemasukanPerKategori',
             'pengeluaranPerKategori',
             'thisMonthPemasukan',
-            'lastMonthPemasukan'
+            'lastMonthPemasukan',
+            'approvedRabs'
         ));
     }
 
@@ -339,29 +468,79 @@ class AdminController extends Controller
     public function storeFinance(Request $request)
     {
         $request->validate([
+            'division_id' => 'nullable|exists:divisions,id',
             'type' => 'required|in:PEMASUKAN,PENGELUARAN',
             'kategori' => 'nullable|string|max:255',
-            'description' => 'required|string|max:255',
+            'description' => 'required|string',
             'amount' => 'required|numeric|min:0',
             'transaction_date' => 'required|date',
+            'rab_id' => 'nullable|exists:rabs,id',
+            'rab_id' => 'nullable|exists:rabs,id',
         ]);
+
+        $proofPaths = [];
+        if ($request->hasFile('proofs')) {
+            foreach ($request->file('proofs') as $file) {
+                $proofPaths[] = $file->store('finance_proofs', 'public');
+            }
+        }
+        // Fallback backward compatibility for single proof (if old UI is ever hit)
+        if ($request->hasFile('proof')) {
+            $proofPaths[] = $request->file('proof')->store('finance_proofs', 'public');
+        }
+
+        // Jika pengeluaran dan ada divisi, cek budget
+        if ($request->type == 'PENGELUARAN' && $request->division_id) {
+            $budget = \App\Models\Budget::where('division_id', $request->division_id)
+                ->where('period', date('Y-m', strtotime($request->transaction_date)))
+                ->first();
+            
+            if ($budget) {
+                $sisa = $budget->allocated_amount - $budget->used_amount;
+                if ($request->amount > $sisa) {
+                    return back()->with('error', 'Gagal: Pengeluaran melebihi sisa alokasi anggaran divisi (' . number_format($sisa, 0, ',', '.') . ').');
+                }
+                $budget->used_amount += $request->amount;
+                $budget->save();
+            }
+        }
 
         \App\Models\Finance::create([
             'user_id' => auth()->id(),
+            'division_id' => $request->division_id,
+            'rab_id' => $request->rab_id,
             'type' => $request->type,
             'kategori' => $request->kategori,
             'description' => $request->description,
             'amount' => $request->amount,
             'transaction_date' => $request->transaction_date,
+            'proof_path' => count($proofPaths) > 0 ? $proofPaths[0] : null,
+            'proofs' => $proofPaths
         ]);
 
-        \App\Models\ActivityLog::create([
-            'user_id' => auth()->id(),
-            'action' => 'CATAT KEUANGAN',
-            'description' => 'Mencatat ' . $request->type . ' sebesar Rp ' . number_format($request->amount, 0, ',', '.')
+        return back()->with('success', 'Transaksi berhasil ditambahkan!');
+    }
+
+    public function storeBudget(Request $request)
+    {
+        $request->validate([
+            'division_id' => 'required|exists:divisions,id',
+            'total_budget' => 'required|numeric|min:0',
+            'month' => 'required|numeric',
+            'year' => 'required|numeric',
+            'notes' => 'nullable|string'
         ]);
 
-        return back()->with('success', 'Catatan keuangan berhasil ditambahkan.');
+        $period = sprintf('%04d-%02d', $request->year, $request->month);
+
+        \App\Models\Budget::create([
+            'division_id' => $request->division_id,
+            'allocated_amount' => $request->total_budget,
+            'period' => $period,
+            'description' => $request->notes,
+        ]);
+
+        return back()->with('success', 'Anggaran berhasil dialokasikan ke Divisi!');
     }
 
     public function updateFinance(Request $request, $id)
@@ -371,18 +550,63 @@ class AdminController extends Controller
         $request->validate([
             'type' => 'required|in:PEMASUKAN,PENGELUARAN',
             'kategori' => 'nullable|string|max:255',
-            'description' => 'required|string|max:255',
+            'description' => 'required|string',
             'amount' => 'required|numeric|min:0',
             'transaction_date' => 'required|date',
+            'rab_id' => 'nullable|exists:rabs,id',
         ]);
 
+        $proofPaths = $finance->proofs ?? [];
+        if ($finance->proof_path && empty($proofPaths)) {
+            $proofPaths[] = $finance->proof_path;
+        }
+
+        if ($request->hasFile('proofs')) {
+            foreach ($request->file('proofs') as $file) {
+                $proofPaths[] = $file->store('finance_proofs', 'public');
+            }
+        }
+        if ($request->hasFile('proof')) {
+            $proofPaths[] = $request->file('proof')->store('finance_proofs', 'public');
+        }
+
+        // --- RELATIONAL LOGIC: Reverse Old Budget ---
+        $oldType = $finance->type;
+        $oldAmount = $finance->amount;
+        $oldDivision = $finance->division_id;
+        
+        if ($oldType === 'PENGELUARAN' && $oldDivision) {
+            $oldBudget = \App\Models\Budget::where('division_id', $oldDivision)
+                ->where('period', date('Y-m', strtotime($finance->transaction_date)))
+                ->first();
+            if ($oldBudget) {
+                $oldBudget->used_amount -= $oldAmount;
+                $oldBudget->save();
+            }
+        }
+
+        // Update Finance Record
         $finance->update([
+            'rab_id' => $request->rab_id,
             'type' => $request->type,
             'kategori' => $request->kategori,
             'description' => $request->description,
             'amount' => $request->amount,
             'transaction_date' => $request->transaction_date,
+            'proof_path' => count($proofPaths) > 0 ? $proofPaths[0] : null,
+            'proofs' => $proofPaths
         ]);
+        
+        // --- RELATIONAL LOGIC: Apply New Budget ---
+        if ($request->type === 'PENGELUARAN' && $finance->division_id) {
+            $newBudget = \App\Models\Budget::where('division_id', $finance->division_id)
+                ->where('period', date('Y-m', strtotime($finance->transaction_date)))
+                ->first();
+            if ($newBudget) {
+                $newBudget->used_amount += $finance->amount;
+                $newBudget->save();
+            }
+        }
 
         \App\Models\ActivityLog::create([
             'user_id' => auth()->id(),
@@ -398,6 +622,21 @@ class AdminController extends Controller
         $finance = \App\Models\Finance::findOrFail($id);
         $amount = $finance->amount;
         $type = $finance->type;
+        
+        // --- RELATIONAL LOGIC: Revert Budget if PENGELUARAN ---
+        if ($type === 'PENGELUARAN' && $finance->division_id) {
+            $budget = \App\Models\Budget::where('division_id', $finance->division_id)
+                ->where('period', date('Y-m', strtotime($finance->transaction_date)))
+                ->first();
+            if ($budget) {
+                $budget->used_amount -= $amount;
+                if ($budget->used_amount < 0) {
+                    $budget->used_amount = 0;
+                }
+                $budget->save();
+            }
+        }
+
         $finance->delete();
 
         \App\Models\ActivityLog::create([
@@ -407,6 +646,138 @@ class AdminController extends Controller
         ]);
 
         return back()->with('success', 'Catatan keuangan berhasil dihapus.');
+    }
+
+    // --- DEBT MANAGEMENT ---
+    public function storeDebt(Request $request)
+    {
+        $request->validate([
+            'creditor_name' => 'required|string|max:255',
+            'member_id' => 'nullable|exists:users,id',
+            'amount' => 'required|numeric|min:0',
+            'type' => 'required|in:HUTANG,PIUTANG',
+            'due_date' => 'nullable|date',
+            'description' => 'nullable|string'
+        ]);
+
+        $debt = \App\Models\Debt::create([
+            'creditor_name' => $request->creditor_name,
+            'member_id' => $request->member_id,
+            'amount' => $request->amount,
+            'remaining_amount' => $request->amount,
+            'type' => $request->type,
+            'status' => 'BELUM LUNAS',
+            'due_date' => $request->due_date,
+            'description' => $request->description,
+            'user_id' => auth()->id()
+        ]);
+
+        // Sinkronisasi dengan Kas Umum (Finance)
+        \App\Models\Finance::create([
+            'user_id' => auth()->id(),
+            'type' => $debt->type === 'HUTANG' ? 'PEMASUKAN' : 'PENGELUARAN',
+            'kategori' => $debt->type === 'HUTANG' ? 'Pinjaman Masuk' : 'Memberi Pinjaman',
+            'description' => ($debt->type === 'HUTANG' ? 'Menerima pinjaman dari: ' : 'Memberi pinjaman kepada: ') . $debt->creditor_name . ($debt->description ? ' (' . $debt->description . ')' : ''),
+            'amount' => $request->amount,
+            'transaction_date' => now()->format('Y-m-d')
+        ]);
+
+        return back()->with('success', 'Catatan hutang/piutang berhasil ditambahkan dan disinkronisasi ke Kas Umum.');
+    }
+
+    public function updateDebt(Request $request, $id)
+    {
+        $debt = \App\Models\Debt::findOrFail($id);
+        $request->validate([
+            'creditor_name' => 'required|string|max:255',
+            'member_id' => 'nullable|exists:users,id',
+            'amount' => 'required|numeric|min:0',
+            'type' => 'required|in:HUTANG,PIUTANG',
+            'due_date' => 'nullable|date',
+            'description' => 'nullable|string'
+        ]);
+
+        // Recalculate remaining amount (this simple logic assumes no payments yet or resets it)
+        $diff = $request->amount - $debt->amount;
+        $new_remaining = max(0, $debt->remaining_amount + $diff);
+
+        $debt->update([
+            'creditor_name' => $request->creditor_name,
+            'member_id' => $request->member_id,
+            'amount' => $request->amount,
+            'remaining_amount' => $new_remaining,
+            'status' => $new_remaining == 0 ? 'LUNAS' : 'BELUM LUNAS',
+            'type' => $request->type,
+            'due_date' => $request->due_date,
+            'description' => $request->description
+        ]);
+
+        return back()->with('success', 'Catatan hutang/piutang berhasil diperbarui.');
+    }
+
+    public function destroyDebt($id)
+    {
+        \App\Models\Debt::findOrFail($id)->delete();
+        return back()->with('success', 'Hutang/Piutang dihapus.');
+    }
+
+    public function payDebt(Request $request, $id)
+    {
+        $debt = \App\Models\Debt::findOrFail($id);
+        $request->validate([
+            'pay_amount' => 'required|numeric|min:1|max:' . $debt->remaining_amount,
+            'transaction_date' => 'required|date'
+        ]);
+
+        $debt->remaining_amount -= $request->pay_amount;
+        if ($debt->remaining_amount <= 0) {
+            $debt->status = 'LUNAS';
+            $debt->remaining_amount = 0;
+        }
+        $debt->save();
+
+        // Rekam ke Kas Umum otomatis
+        \App\Models\Finance::create([
+            'user_id' => auth()->id(),
+            'type' => $debt->type == 'HUTANG' ? 'PENGELUARAN' : 'PEMASUKAN', // Bayar hutang = uang keluar, Terima cicilan piutang = uang masuk
+            'kategori' => $debt->type == 'HUTANG' ? 'Bayar Hutang' : 'Terima Piutang',
+            'description' => 'Pembayaran ' . strtolower($debt->type) . ' kepada/dari: ' . $debt->creditor_name,
+            'amount' => $request->pay_amount,
+            'transaction_date' => $request->transaction_date
+        ]);
+
+        return back()->with('success', 'Pembayaran berhasil dan tercatat di Kas Umum.');
+    }
+
+    public function delegations()
+    {
+        $delegations = \App\Models\PermissionDelegation::with(['delegator', 'delegatee'])->latest()->get();
+        return view('admin.delegations', compact('delegations'));
+    }
+
+    public function approveDelegation($id)
+    {
+        $delegation = \App\Models\PermissionDelegation::findOrFail($id);
+        $delegation->status = 'APPROVED';
+        $delegation->save();
+
+        $delegatee = \App\Models\User::find($delegation->delegatee_id);
+        $delegatee->{$delegation->permission} = true;
+        if ($delegation->permission == 'can_view_finances' || $delegation->permission == 'can_manage_finances') {
+            $delegatee->finance_view_scope = $delegation->scope;
+        }
+        $delegatee->save();
+
+        return back()->with('success', 'Delegasi disetujui, akses diberikan.');
+    }
+
+    public function rejectDelegation($id)
+    {
+        $delegation = \App\Models\PermissionDelegation::findOrFail($id);
+        $delegation->status = 'REJECTED';
+        $delegation->save();
+
+        return back()->with('success', 'Delegasi ditolak.');
     }
 
     public function previewCard($id)
@@ -422,7 +793,7 @@ class AdminController extends Controller
         // Pastikan user memiliki member_id
         $memberId = $user->member_id ?? 'JC-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
 
-        // 1. Inisialisasi Image Manager (Sintaks Versi 3)
+        // 1. Inisialisasi Image Manager (Sintaks Versi 4)
         $manager = new ImageManager(new Driver());
 
         // 2. Baca file template
@@ -430,7 +801,7 @@ class AdminController extends Controller
         if (!file_exists($templatePath)) {
             return back()->with('error', 'File template kartu tidak ditemukan.');
         }
-        $image = $manager->read($templatePath);
+        $image = $manager->decode($templatePath);
 
         // 3. Generate QR Code menjadi format PNG
         // Karena ekstensi Imagick di mesin Anda tidak aktif, kita akan mem-bypass library simplesoftware
@@ -447,132 +818,70 @@ class AdminController extends Controller
                 throw new \Exception('API Error');
             }
 
-            $qrImage = $manager->read($qrResponse->body());
+            $qrImage = $manager->decode($qrResponse->body());
+            $qrImage->resize(345, 345);
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal memuat QR Code: Aktifkan ekstensi php_imagick atau pastikan terhubung ke internet.');
         }
 
-        // 4. Tempelkan QR Code ke template (v4 menggunakan insert)
+        // 4. Tempelkan QR Code ke template
         // Kordinat X: 1114, Y: 720 (Untuk kotak putih kanan bawah)
-        $image->place($qrImage, 'top-left', 1114, 720);
+        $image->insert($qrImage, 1114, 720);
 
         // 5. Tulis Informasi Anggota
-        $fontPath = public_path('fonts/arial.ttf'); // Pastikan font arial.ttf sudah ada di public/fonts/
+        $fontPath = public_path('fonts/arial.ttf');
 
-        // Menulis Nama (Dengan wordwrap agar tidak meluber jika nama panjang)
-        $namaText = wordwrap('NAMA : ' . strtoupper($user->name), 26, "\n");
-        $image->text($namaText, 530, 460, function (FontFactory $font) use ($fontPath) {
-            $font->filename($fontPath);
-            $font->size(60);
+        // Menulis Nama
+        $namaText = 'NAMA : ' . strtoupper($user->name);
+        $image->text($namaText, 530, 460, function ($font) use ($fontPath) {
+            $font->file($fontPath);
+            $font->size(50);
             $font->color('#ffffff');
-            $font->valign('top');
+            $font->align('left', 'top');
         });
 
         // Menulis ID Member
-        $image->text('ID : ' . $memberId, 530, 560, function (FontFactory $font) use ($fontPath) {
-            $font->filename($fontPath);
-            $font->size(60);
+        $image->text('ID : ' . $memberId, 530, 550, function ($font) use ($fontPath) {
+            $font->file($fontPath);
+            $font->size(50);
             $font->color('#ffffff');
+            $font->align('left', 'top');
         });
 
         // Menulis Status
-        $image->text('STATUS : AKTIF', 530, 660, function (FontFactory $font) use ($fontPath) {
-            $font->filename($fontPath);
-            $font->size(60);
+        $image->text('STATUS : AKTIF', 530, 640, function ($font) use ($fontPath) {
+            $font->file($fontPath);
+            $font->size(50);
             $font->color('#ffffff');
+            $font->align('left', 'top');
         });
 
-        $encoded = $image->toJpeg(85);
+        // Menulis Jabatan
+        // Admin, Pengurus Inti, dsb
+        $jabatanText = 'JABATAN : ' . strtoupper($user->role);
+        if ($user->google_id) {
+            $jabatanText .= ' (PENDAFTAR GOOGLE)';
+        }
+        $image->text($jabatanText, 530, 730, function ($font) use ($fontPath) {
+            $font->file($fontPath);
+            $font->size(50);
+            $font->color('#ffffff');
+            $font->align('left', 'top');
+        });
 
-        // 6. Kalau requestnya minta didownload (dari tombol pratinjau)
-        if ($request->has('download')) {
-            return response($encoded->toString())
+        $encoded = $image->encodeUsingFileExtension('jpg', 85);
+
+        if (request()->has('download')) {
+            return response((string) $encoded)
                 ->header('Content-Type', 'image/jpeg')
                 ->header('Content-Disposition', 'attachment; filename="ID_Card_' . $user->name . '.jpg"');
         }
 
-        // Tampilkan Gambar untuk Pratinjau
-        return response($encoded->toString())->header('Content-Type', 'image/jpeg');
+        // Mode Pratinjau (Preview)
+        return response((string) $encoded)->header('Content-Type', 'image/jpeg');
     }
+    // Dihapus karena diganti dengan satu fungsi download
 
-    public function generateCardCustom(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-
-        // Update database if name changed
-        if ($request->has('nama_text') && !empty($request->nama_text)) {
-            $user->update(['name' => $request->nama_text]);
-        }
-
-        $memberId = $user->member_id ?? 'JC-' . str_pad($user->id, 4, '0', STR_PAD_LEFT);
-        $manager = new ImageManager(new Driver());
-
-        $templatePath = public_path('images/template_kartu.png');
-        if (!file_exists($templatePath)) {
-            return back()->with('error', 'File template kartu tidak ditemukan.');
-        }
-        $image = $manager->decode($templatePath);
-
-        // QR Code API Fallback
-        try {
-            $qrResponse = \Illuminate\Support\Facades\Http::timeout(10)->get('https://quickchart.io/qr', [
-                'text' => route('member.verify', $memberId),
-                'size' => 345,
-                'margin' => 0,
-                'format' => 'png'
-            ]);
-            if (!$qrResponse->successful())
-                throw new \Exception('API Error');
-            $qrImage = $manager->decode($qrResponse->body());
-        } catch (\Exception $e) {
-            return back()->with('error', 'Gagal memuat QR Code: Aktifkan ekstensi php_imagick atau cek internet.');
-        }
-
-        // Always put QR in absolute place since it's an image element
-        $image->place($qrImage, 'top-left', 1114, 720);
-
-        $fontPath = public_path('fonts/arial.ttf');
-
-        // Parse custom X Y coordinates
-        $namaX = (int) $request->input('nama_x', 530);
-        $namaY = (int) $request->input('nama_y', 460);
-
-        $idX = (int) $request->input('id_x', 530);
-        $idY = (int) $request->input('id_y', 560);
-
-        $statusX = (int) $request->input('status_x', 530);
-        $statusY = (int) $request->input('status_y', 660);
-
-        $statusText = $request->input('status_text', 'AKTIF');
-
-        $namaText = wordwrap('NAMA : ' . strtoupper($user->name), 26, "\n");
-        $image->text($namaText, $namaX, $namaY, function (FontFactory $font) use ($fontPath) {
-            $font->filename($fontPath);
-            $font->size(60);
-            $font->color('#ffffff');
-            $font->align(vertical: 'top');
-        });
-
-        $image->text('ID : ' . $memberId, $idX, $idY, function (FontFactory $font) use ($fontPath) {
-            $font->filename($fontPath);
-            $font->size(60);
-            $font->color('#ffffff');
-            $font->align(vertical: 'top');
-        });
-
-        $image->text('STATUS : ' . strtoupper($statusText), $statusX, $statusY, function (FontFactory $font) use ($fontPath) {
-            $font->filename($fontPath);
-            $font->size(60);
-            $font->color('#ffffff');
-            $font->align(vertical: 'top');
-        });
-
-        $encoded = $image->toJpeg(85);
-
-        return response($encoded->toString())
-            ->header('Content-Type', 'image/jpeg')
-            ->header('Content-Disposition', 'attachment; filename="ID_Card_' . $user->name . '.jpg"');
-    }
 
     // Posts Management
     public function posts()
@@ -626,7 +935,7 @@ class AdminController extends Controller
 
         Post::create([
             'user_id'    => auth()->id(),
-            'content'    => $request->content,
+            'content'    => $request->input('content'),
             'media_path' => $mediaPath,
             'media_type' => $mediaType,
             'link_url'   => $request->link_url ?: null,
@@ -648,7 +957,7 @@ class AdminController extends Controller
 
         $post = Post::findOrFail($id);
         $data = [
-            'content'  => $request->content,
+            'content'  => $request->input('content'),
             'link_url' => $request->link_url ?: null,
             'tags'     => $request->tags ? implode(',', array_map('trim', explode(',', $request->tags))) : null,
             'pinned'   => $request->boolean('pinned'),
@@ -699,75 +1008,152 @@ class AdminController extends Controller
     }
 
     // --- Media CMS Management ---
+    private function formatBytes($bytes)
+    {
+        if ($bytes >= 1048576) {
+            return round($bytes / 1048576, 2) . ' MB';
+        } elseif ($bytes >= 1024) {
+            return round($bytes / 1024, 2) . ' KB';
+        } else {
+            return $bytes . ' Bytes';
+        }
+    }
+
     public function media()
     {
+        // Auto-sync existing files from public/media
         $mediaPath = public_path('media');
-        if (!file_exists($mediaPath)) {
-            mkdir($mediaPath, 0755, true);
+        if (file_exists($mediaPath)) {
+            $files = array_diff(scandir($mediaPath), array('..', '.', '.htaccess', 'index.php'));
+            foreach ($files as $file) {
+                if (is_file($mediaPath . '/' . $file) && !\App\Models\Gallery::where('filename', $file)->exists()) {
+                    $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+                    $type = in_array($ext, ['mp4', 'mov', 'avi']) ? 'video' : 'image';
+                    $size = filesize($mediaPath . '/' . $file);
+                    
+                    \App\Models\Gallery::create([
+                        'filename' => $file,
+                        'type' => $type,
+                        'title' => pathinfo($file, PATHINFO_FILENAME),
+                        'category' => 'gallery',
+                        'size' => $this->formatBytes($size)
+                    ]);
+                }
+            }
         }
 
-        $files = array_diff(scandir($mediaPath), array('..', '.'));
-        $mediaFiles = [];
-
-        foreach ($files as $file) {
-            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-            $type = in_array($ext, ['mp4', 'mov', 'avi']) ? 'video' : 'image';
-            $size = filesize($mediaPath . '/' . $file);
-            $mediaFiles[] = [
-                'name' => $file,
-                'type' => $type,
-                'size' => round($size / 1048576, 2) . ' MB', // in MB
-                'url' => asset('media/' . $file)
-            ];
-        }
-
-        return view('admin.media', compact('mediaFiles'));
+        $mediaFiles = \App\Models\Gallery::with('division')->latest()->get();
+        $divisions = \App\Models\Division::all();
+        return view('admin.media', compact('mediaFiles', 'divisions'));
     }
 
     public function storeMedia(Request $request)
     {
         $request->validate([
-            'media' => 'required|file|mimes:jpg,jpeg,png,mp4,mov,avi|max:102400' // Up to 100MB
+            'upload_type' => 'required|in:file,embed',
+            'category' => 'required|in:banner,gallery,post',
+            'title' => 'nullable|string|max:255',
+            'division_id' => 'nullable|exists:divisions,id',
+            'orientation' => 'nullable|in:landscape,portrait,square'
         ]);
 
-        if ($request->hasFile('media')) {
-            $file = $request->file('media');
-            if ($file->isValid()) {
-                $destinationPath = public_path('media');
-                if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0755, true);
-                }
-                
-                $fileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_\.-]/', '', $file->getClientOriginalName());
-                $file->move($destinationPath, $fileName);
-
-                \App\Models\ActivityLog::create([
-                    'user_id' => auth()->id(),
-                    'action' => 'UPLOAD MEDIA',
-                    'description' => 'Mengunggah file media resolusi tinggi: ' . $fileName
-                ]);
-
-                return back()->with('success', 'Media berhasil diunggah.');
-            }
-        }
-        return back()->with('error', 'Gagal mengunggah media.');
-    }
-
-    public function destroyMedia($filename)
-    {
-        $path = public_path('media/' . $filename);
-        if (file_exists($path)) {
-            unlink($path);
-            
-            \App\Models\ActivityLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'HAPUS MEDIA',
-                'description' => 'Menghapus file media: ' . $filename
+        if ($request->upload_type == 'file') {
+            $request->validate([
+                'media' => 'required|file|mimes:jpg,jpeg,png,mp4,mov,avi|max:102400'
             ]);
 
-            return back()->with('success', 'Media berhasil dihapus.');
+            $file = $request->file('media');
+            $destinationPath = public_path('media');
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+            
+            $fileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_\.-]/', '', $file->getClientOriginalName());
+            $file->move($destinationPath, $fileName);
+
+            $ext = strtolower($file->getClientOriginalExtension());
+            $type = in_array($ext, ['mp4', 'mov', 'avi']) ? 'video' : 'image';
+            
+            \App\Models\Gallery::create([
+                'filename' => $fileName,
+                'type' => $type,
+                'title' => $request->title ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                'category' => $request->category,
+                'division_id' => $request->division_id,
+                'orientation' => $request->orientation ?? 'landscape',
+                'size' => $this->formatBytes(filesize($destinationPath . '/' . $fileName))
+            ]);
+
+            \App\Models\ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'UPLOAD MEDIA',
+                'description' => 'Mengunggah media: ' . $fileName
+            ]);
+
+        } else {
+            $request->validate([
+                'source_url' => 'required|url'
+            ]);
+
+            \App\Models\Gallery::create([
+                'type' => 'embed',
+                'source_url' => $request->source_url,
+                'title' => $request->title ?: 'Embed Social Media',
+                'category' => $request->category,
+                'division_id' => $request->division_id,
+                'orientation' => $request->orientation ?? 'landscape',
+            ]);
+
+            \App\Models\ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'EMBED MEDIA',
+                'description' => 'Menambahkan tautan embed sosial media.'
+            ]);
         }
-        return back()->with('error', 'Media tidak ditemukan.');
+
+        return back()->with('success', 'Media berhasil ditambahkan.');
+    }
+
+    public function updateMedia(Request $request, $id)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'category' => 'required|in:banner,gallery,post',
+            'division_id' => 'nullable|exists:divisions,id',
+            'orientation' => 'nullable|in:landscape,portrait,square'
+        ]);
+
+        $gallery = \App\Models\Gallery::findOrFail($id);
+        $gallery->update([
+            'title' => $request->title,
+            'category' => $request->category,
+            'division_id' => $request->division_id,
+            'orientation' => $request->orientation ?? 'landscape'
+        ]);
+
+        return back()->with('success', 'Informasi media berhasil diperbarui.');
+    }
+
+    public function destroyMedia($id)
+    {
+        $gallery = \App\Models\Gallery::findOrFail($id);
+        
+        if ($gallery->type != 'embed' && $gallery->filename) {
+            $path = public_path('media/' . $gallery->filename);
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
+        
+        $gallery->delete();
+
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'HAPUS MEDIA',
+            'description' => 'Menghapus item media dari CMS.'
+        ]);
+
+        return back()->with('success', 'Media berhasil dihapus.');
     }
 
     // Events Management
@@ -797,24 +1183,231 @@ class AdminController extends Controller
     }
 
     // Waste Deposits Management
-    public function wasteDeposits()
+    public function wasteDeposits(\Illuminate\Http\Request $request)
     {
-        $deposits = WasteDeposit::with('user')->latest()->paginate(20);
-        return view('admin.waste_deposits', compact('deposits'));
+        $query = WasteDeposit::with(['user', 'category'])->latest();
+
+        $filter = $request->get('filter', 'all');
+        if ($filter === 'pending') {
+            $query->where('status', 'PENDING');
+        } elseif ($filter === 'approved') {
+            $query->where('status', 'APPROVED');
+        } elseif ($filter === 'rejected') {
+            $query->where('status', 'REJECTED');
+        } elseif ($filter === 'with_proof') {
+            $query->whereNotNull('media_path');
+        } elseif ($filter === 'without_proof') {
+            $query->whereNull('media_path');
+        }
+
+        $deposits = $query->paginate(20);
+
+        // Analytics
+        $totalWeight = WasteDeposit::where('status', 'APPROVED')->sum('weight');
+        $pendingCount = WasteDeposit::where('status', 'PENDING')->count();
+        $withoutProofCount = WasteDeposit::whereNull('media_path')->count();
+
+        $categories = WasteCategory::all();
+        $members = User::where('status', 'AKTIF')->where('role', '!=', 'superadmin')->get();
+        return view('admin.waste_deposits', compact('deposits', 'categories', 'members', 'filter', 'totalWeight', 'pendingCount', 'withoutProofCount'));
+    }
+
+    public function storeWasteDepositAdmin(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'waste_category_id' => 'required|exists:waste_categories,id',
+            'weight' => 'required|numeric|min:0.1',
+            'description' => 'nullable|string',
+            'status' => 'required|in:PENDING,APPROVED,REJECTED'
+        ]);
+
+        $category = WasteCategory::findOrFail($request->waste_category_id);
+        
+        $deposit = WasteDeposit::create([
+            'user_id' => $request->user_id,
+            'waste_category_id' => $category->id,
+            'type' => $category->name, // fallback
+            'weight' => $request->weight,
+            'description' => $request->description,
+            'status' => $request->status,
+        ]);
+
+        if ($deposit->status === 'APPROVED') {
+            $points = $request->weight * $category->point_multiplier;
+            $deposit->update(['points_awarded' => $points]);
+            $user = User::find($request->user_id);
+            $user->increment('points', $points);
+            
+            \App\Models\Notification::create([
+                'user_id' => $user->id,
+                'title'   => 'Limbah Disetujui (Admin)',
+                'message' => 'Admin menambahkan dan menyetujui limbah Anda (' . $request->weight . ' kg).',
+                'url'     => route('member.waste_report')
+            ]);
+        }
+
+        return back()->with('success', 'Setoran limbah berhasil ditambahkan oleh Admin.');
     }
 
     public function updateWasteStatus(Request $request, $id)
     {
         $deposit = WasteDeposit::findOrFail($id);
+        $oldStatus = $deposit->status;
         $deposit->update(['status' => $request->status]);
+
+        // If approved and wasn't approved before, award points
+        if ($request->status === 'APPROVED' && $oldStatus !== 'APPROVED') {
+            $category = $deposit->category;
+            if ($category) {
+                $points = $deposit->weight * $category->point_multiplier;
+                $deposit->update(['points_awarded' => $points]);
+                $user = User::find($deposit->user_id);
+                if ($user) {
+                    $user->increment('points', $points);
+                }
+            }
+        } elseif ($oldStatus === 'APPROVED' && $request->status !== 'APPROVED') {
+            // Deduct points if status changed from APPROVED
+            $points = $deposit->points_awarded;
+            $deposit->update(['points_awarded' => 0]);
+            $user = User::find($deposit->user_id);
+            if ($user) {
+                $user->decrement('points', $points);
+            }
+        }
+
+        // Notify member of status change
+        if ($oldStatus !== $request->status) {
+            $statusText = $request->status === 'APPROVED' ? 'Disetujui' : ($request->status === 'REJECTED' ? 'Ditolak' : 'Diproses');
+            \App\Models\Notification::create([
+                'user_id' => $deposit->user_id,
+                'title'   => 'Status Setoran Limbah',
+                'message' => 'Setoran ' . $deposit->type . ' sebesar ' . $deposit->weight . ' kg telah ' . strtolower($statusText) . '.',
+                'url'     => route('member.waste_report')
+            ]);
+        }
 
         return back()->with('success', 'Status setoran berhasil diperbarui.');
     }
 
+    public function updateWasteDepositAdmin(Request $request, $id)
+    {
+        $deposit = WasteDeposit::findOrFail($id);
+        
+        $request->validate([
+            'weight' => 'required|numeric|min:0.1',
+            'description' => 'nullable|string'
+        ]);
+
+        $oldWeight = $deposit->weight;
+        $deposit->update([
+            'weight' => $request->weight,
+            'description' => $request->description
+        ]);
+
+        // If approved, recalculate points
+        if ($deposit->status === 'APPROVED' && $oldWeight != $request->weight) {
+            $category = $deposit->category;
+            if ($category) {
+                $user = User::find($deposit->user_id);
+                if ($user) {
+                    // Deduct old points
+                    $user->decrement('points', $deposit->points_awarded);
+                    
+                    // Add new points
+                    $newPoints = $request->weight * $category->point_multiplier;
+                    $deposit->update(['points_awarded' => $newPoints]);
+                    $user->increment('points', $newPoints);
+                }
+            }
+        }
+
+        return back()->with('success', 'Data setoran berhasil diubah.');
+    }
+
     public function destroyWasteDeposit($id)
     {
-        WasteDeposit::findOrFail($id)->delete();
+        $deposit = WasteDeposit::findOrFail($id);
+        if ($deposit->status === 'APPROVED' && $deposit->points_awarded > 0) {
+            $user = User::find($deposit->user_id);
+            if ($user) {
+                $user->decrement('points', $deposit->points_awarded);
+            }
+        }
+        $deposit->delete();
         return back()->with('success', 'Data setoran dihapus.');
+    }
+
+    // --- System Settings ---
+    public function settings()
+    {
+        $settings = SystemSetting::pluck('value', 'key')->toArray();
+        return view('admin.settings', compact('settings'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $request->validate([
+            'waste_input_mode' => 'required|in:member_only,admin_only,both',
+        ]);
+
+        SystemSetting::setSetting('waste_input_mode', $request->waste_input_mode);
+
+        return back()->with('success', 'Pengaturan sistem berhasil diperbarui.');
+    }
+
+    // --- Waste Categories ---
+    public function wasteCategories()
+    {
+        $categories = WasteCategory::latest()->paginate(15);
+        return view('admin.waste_categories', compact('categories'));
+    }
+
+    public function storeWasteCategory(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'point_multiplier' => 'required|integer|min:0',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|max:5120'
+        ]);
+
+        $data = $request->except('image');
+        if ($request->hasFile('image')) {
+            $data['image_path'] = $request->file('image')->store('categories', 'public');
+        }
+
+        WasteCategory::create($data);
+        return back()->with('success', 'Kategori limbah berhasil ditambahkan.');
+    }
+
+    public function updateWasteCategory(Request $request, $id)
+    {
+        $category = WasteCategory::findOrFail($id);
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'point_multiplier' => 'required|integer|min:0',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|max:5120'
+        ]);
+
+        $data = $request->except('image');
+        if ($request->hasFile('image')) {
+            if ($category->image_path) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($category->image_path);
+            }
+            $data['image_path'] = $request->file('image')->store('categories', 'public');
+        }
+
+        $category->update($data);
+        return back()->with('success', 'Kategori limbah berhasil diperbarui.');
+    }
+
+    public function destroyWasteCategory($id)
+    {
+        WasteCategory::findOrFail($id)->delete();
+        return back()->with('success', 'Kategori limbah berhasil dihapus.');
     }
 
     // AI & Analytics Integration
@@ -969,14 +1562,10 @@ class AdminController extends Controller
         }
 
         $clientRepo = app(\Laravel\Passport\ClientRepository::class);
-        $client = $clientRepo->create(
+        $client = $clientRepo->createPersonalAccessClient(
             null,
             $request->name,
-            $request->redirect,
-            null,
-            false,
-            false,
-            true
+            $request->redirect
         );
 
         \App\Models\ActivityLog::create([
@@ -1001,5 +1590,257 @@ class AdminController extends Controller
             ]);
         }
         return back()->with('success', 'OAuth Client berhasil dicabut.');
+    }
+
+    // --- RAB Management ---
+    public function rabs()
+    {
+        $rabs = \App\Models\Rab::with(['division', 'items'])->latest()->paginate(15);
+        $divisions = \App\Models\Division::all();
+        return view('admin.rabs', compact('rabs', 'divisions'));
+    }
+
+    public function storeRab(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'division_id' => 'required|exists:divisions,id',
+            'description' => 'nullable|string',
+            'items' => 'required|array',
+            'items.*.name' => 'required|string|max:255',
+            'items.*.qty' => 'required|numeric|min:1',
+            'items.*.price' => 'required|numeric|min:0'
+        ]);
+
+        $rab = \App\Models\Rab::create([
+            'title' => $request->title,
+            'division_id' => $request->division_id,
+            'description' => $request->description,
+            'status' => 'PENDING',
+            'total_amount' => 0
+        ]);
+
+        $total = 0;
+        foreach ($request->items as $item) {
+            $subtotal = $item['qty'] * $item['price'];
+            $total += $subtotal;
+            \App\Models\RabItem::create([
+                'rab_id' => $rab->id,
+                'name' => $item['name'],
+                'qty' => $item['qty'],
+                'unit_price' => $item['price'],
+                'subtotal' => $subtotal
+            ]);
+        }
+
+        $rab->update(['total_amount' => $total]);
+
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'BUAT RAB',
+            'description' => 'Membuat pengajuan RAB: ' . $rab->title
+        ]);
+
+        return back()->with('success', 'RAB berhasil diajukan.');
+    }
+
+    public function updateRab(Request $request, $id)
+    {
+        $rab = \App\Models\Rab::findOrFail($id);
+        $oldTitle = $rab->title;
+        
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'division_id' => 'required|exists:divisions,id',
+            'description' => 'nullable|string',
+            'items' => 'required|array',
+            'items.*.name' => 'required|string|max:255',
+            'items.*.qty' => 'required|numeric|min:1',
+            'items.*.price' => 'required|numeric|min:0'
+        ]);
+
+        $rab->update([
+            'title' => $request->title,
+            'division_id' => $request->division_id,
+            'description' => $request->description,
+        ]);
+
+        $rab->items()->delete();
+        $total = 0;
+        foreach ($request->items as $item) {
+            $subtotal = $item['qty'] * $item['price'];
+            $total += $subtotal;
+            \App\Models\RabItem::create([
+                'rab_id' => $rab->id,
+                'name' => $item['name'],
+                'qty' => $item['qty'],
+                'unit_price' => $item['price'],
+                'subtotal' => $subtotal
+            ]);
+        }
+        $rab->update(['total_amount' => $total]);
+
+        if ($rab->status === 'APPROVED') {
+            $budget = \App\Models\Budget::where('description', 'Alokasi otomatis dari persetujuan RAB: ' . $oldTitle)
+                ->where('division_id', $rab->getOriginal('division_id'))
+                ->first();
+            if ($budget) {
+                $budget->update([
+                    'allocated_amount' => $total,
+                    'description' => 'Alokasi otomatis dari persetujuan RAB: ' . $rab->title,
+                    'division_id' => $rab->division_id
+                ]);
+            }
+        }
+        return back()->with('success', 'RAB berhasil diperbarui.');
+    }
+    
+    public function destroyRab($id)
+    {
+        $rab = \App\Models\Rab::findOrFail($id);
+        if ($rab->status === 'APPROVED') {
+            $budget = \App\Models\Budget::where('description', 'Alokasi otomatis dari persetujuan RAB: ' . $rab->title)
+                ->where('division_id', $rab->division_id)
+                ->first();
+            if ($budget) {
+                $budget->delete();
+            }
+        }
+        $rab->items()->delete();
+        $rab->delete();
+        return back()->with('success', 'RAB berhasil dihapus.');
+    }
+
+    public function updateRabStatus(Request $request, $id)
+    {
+        $rab = \App\Models\Rab::findOrFail($id);
+        
+        $request->validate([
+            'status' => 'required|in:APPROVED,REJECTED'
+        ]);
+
+        $rab->update(['status' => $request->status]);
+
+        if ($request->status === 'APPROVED' && $request->has('create_budget')) {
+            \App\Models\Budget::create([
+                'division_id' => $rab->division_id,
+                'allocated_amount' => $rab->total_amount,
+                'period' => now()->format('Y-m'),
+                'description' => 'Alokasi otomatis dari persetujuan RAB: ' . $rab->title
+            ]);
+        }
+
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'UPDATE STATUS RAB',
+            'description' => 'Mengubah status RAB: ' . $rab->title . ' menjadi ' . $request->status
+        ]);
+
+        return back()->with('success', 'Status RAB berhasil diperbarui.');
+    }
+
+    public function exportRabs() {
+        $rabs = \App\Models\Rab::with(['division', 'items'])->get();
+        $filename = "Data_RAB_" . date('Y-m-d') . ".csv";
+        $headers = ["Content-Type" => "text/csv", "Content-Disposition" => "attachment; filename=$filename"];
+        $callback = function() use ($rabs) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Divisi', 'Pengaju', 'Judul', 'Total', 'Status', 'Tanggal']);
+            foreach ($rabs as $r) {
+                fputcsv($file, [$r->id, $r->division->name ?? '-', '-', $r->title, $r->total_amount, $r->status, $r->created_at->format('Y-m-d')]);
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportProductions() {
+        $productions = \App\Models\ProductionBatch::with('division')->get();
+        $filename = "Data_Produksi_" . date('Y-m-d') . ".csv";
+        $headers = ["Content-Type" => "text/csv", "Content-Disposition" => "attachment; filename=$filename"];
+        $callback = function() use ($productions) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Divisi', 'Nama Batch', 'Produk', 'Jumlah', 'Tanggal Produksi']);
+            foreach ($productions as $p) {
+                fputcsv($file, [$p->id, $p->division->name ?? '-', $p->batch_number, $p->product_name, $p->quantity_produced, $p->production_date]);
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportDivisions() {
+        $divisions = \App\Models\Division::all();
+        $filename = "Data_Divisi_" . date('Y-m-d') . ".csv";
+        $headers = ["Content-Type" => "text/csv", "Content-Disposition" => "attachment; filename=$filename"];
+        $callback = function() use ($divisions) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Nama Divisi', 'Deskripsi', 'Manajer ID', 'Dibuat Pada']);
+            foreach ($divisions as $d) {
+                fputcsv($file, [$d->id, $d->name, $d->description, $d->manager_id ?? '-', $d->created_at->format('Y-m-d')]);
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportLogs() {
+        $logs = \App\Models\ActivityLog::with('user')->orderBy('created_at', 'desc')->get();
+        $filename = "Data_Log_" . date('Y-m-d') . ".csv";
+        $headers = ["Content-Type" => "text/csv", "Content-Disposition" => "attachment; filename=$filename"];
+        $callback = function() use ($logs) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'User', 'Aksi', 'Deskripsi', 'Waktu']);
+            foreach ($logs as $l) {
+                fputcsv($file, [$l->id, $l->user->name ?? 'Sistem', $l->action, $l->description, $l->created_at->format('Y-m-d H:i:s')]);
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportMessages() {
+        $messages = \App\Models\Message::orderBy('created_at', 'desc')->get();
+        $filename = "Data_Pesan_" . date('Y-m-d') . ".csv";
+        $headers = ["Content-Type" => "text/csv", "Content-Disposition" => "attachment; filename=$filename"];
+        $callback = function() use ($messages) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Nama Pengirim', 'Email', 'Isi Pesan', 'Status', 'Tanggal']);
+            foreach ($messages as $m) {
+                fputcsv($file, [$m->id, $m->name, $m->email, $m->content, $m->is_read ? 'Dibaca' : 'Baru', $m->created_at->format('Y-m-d H:i:s')]);
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportWasteCategories() {
+        $categories = WasteCategory::all();
+        $filename = "Data_Kategori_Limbah_" . date('Y-m-d') . ".csv";
+        $headers = ["Content-Type" => "text/csv", "Content-Disposition" => "attachment; filename=$filename"];
+        $callback = function() use ($categories) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Nama Kategori', 'Deskripsi', 'Nilai Poin/Kg']);
+            foreach ($categories as $c) {
+                fputcsv($file, [$c->id, $c->name, $c->description, $c->point_value]);
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportWasteDepositsExcel() {
+        $deposits = WasteDeposit::with('user')->orderBy('created_at', 'desc')->get();
+        $filename = "Data_Setoran_Limbah_" . date('Y-m-d') . ".csv";
+        $headers = ["Content-Type" => "text/csv", "Content-Disposition" => "attachment; filename=$filename"];
+        $callback = function() use ($deposits) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Anggota', 'Jenis Limbah', 'Berat (Kg)', 'Status', 'Tanggal']);
+            foreach ($deposits as $d) {
+                fputcsv($file, [$d->id, $d->user->name ?? '-', $d->type, $d->weight, $d->status, $d->created_at->format('Y-m-d H:i:s')]);
+            }
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
     }
 }

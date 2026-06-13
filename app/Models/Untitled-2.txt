@@ -1,0 +1,4 @@
+# 
+
+Path is NOT a link.
+Path DOES NOT EXIST at all.

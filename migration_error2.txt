@@ -1,0 +1,5 @@
+
+   INFO  Running migrations.  
+
+  2026_06_10_021800_add_rab_id_to_finances_table ................ 15.25ms DONE
+

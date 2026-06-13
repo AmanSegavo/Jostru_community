@@ -29,7 +29,7 @@
             @endif
 
             <div class="card p-4 glass" style="border-radius: 16px; border: 1px solid var(--border-color);">
-                <form action="{{ route('member.profile.update') }}" method="POST" id="profile-form">
+                <form action="{{ route('member.profile.update') }}" method="POST" id="profile-form" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="latitude" id="lat" value="{{ $user->latitude }}">
                     <input type="hidden" name="longitude" id="lng" value="{{ $user->longitude }}">
@@ -37,15 +37,13 @@
                     <div class="row mb-3">
                         <div class="col-md-6 mb-3 mb-md-0">
                             <label class="form-label" style="color: var(--text-secondary);">Nama Lengkap</label>
-                            <input type="text" class="form-control" value="{{ $user->name }}" readonly 
-                                   style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: var(--text-color);">
+                            <input type="text" class="form-control" value="{{ $user->name }}" readonly>
                             <small class="text-muted d-block mt-1" style="font-size: 11px;">Hubungi Admin untuk mengubah nama</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" style="color: var(--text-secondary);">Email Akses</label>
                             <div class="d-flex align-items-center gap-2">
-                                <input type="email" class="form-control" value="{{ $user->email }}" readonly 
-                                       style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: var(--text-color); flex:1;">
+                                <input type="email" class="form-control" value="{{ $user->email }}" readonly style="flex:1;">
                                 
                                 @if($user->google_id)
                                     <span class="badge bg-success d-flex align-items-center gap-1" style="height:38px; padding:0 12px; border-radius:6px; font-size:12px;">
@@ -65,13 +63,11 @@
                     <div class="row mb-3">
                         <div class="col-md-6 mb-3 mb-md-0">
                             <label class="form-label" style="color: var(--text-secondary);">Tanggal Lahir</label>
-                            <input type="date" name="tanggal_lahir" class="form-control" required value="{{ $user->tanggal_lahir }}" 
-                                   style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color);">
+                            <input type="date" name="tanggal_lahir" class="form-control" required value="{{ $user->tanggal_lahir }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" style="color: var(--text-secondary);">Ganti Password (Opsional)</label>
-                            <input type="password" name="password" class="form-control" placeholder="Kosongkan jika tidak diubah" 
-                                   style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color);">
+                            <input type="password" name="password" class="form-control" placeholder="Kosongkan jika tidak diubah">
                         </div>
                     </div>
 
@@ -86,34 +82,73 @@
                             </button>
                         </div>
 
-                        <!-- Google Maps Parser -->
-                        <div class="mb-3 p-3" style="background: rgba(0,0,0,0.15); border: 1px solid var(--border-color); border-radius: 10px;">
-                            <label class="form-label" style="font-size:13px; color:#22c55e; font-weight:600;">
-                                Ekstrak dari Google Maps (Paling Mudah)
-                            </label>
-                            <div class="d-flex gap-2">
-                                <input type="text" id="gmapsLink" class="form-control" placeholder="Paste link Google Maps di sini..." 
-                                       style="font-size:13px; background:transparent; border:1px solid var(--border-color); color:var(--text-color);">
-                                <button type="button" id="btn-parse-gmaps" class="btn btn-success" style="white-space:nowrap; font-size:13px; min-width:110px;">
-                                    <span id="parse-text">Tarik Lokasi</span>
-                                </button>
-                            </div>
-                            <small class="text-muted d-block mt-2" style="font-size:11px;">
-                                Buka Google Maps → Cari rumah → Bagikan → Salin link
-                            </small>
+                        <!-- Peta & GPS (Super Simpel) -->
+                        <div class="mb-3 p-3" style="background: rgba(34,197,94,0.05); border: 2px dashed #22c55e; border-radius: 12px; text-align: center;">
+                            <h5 style="color: #22c55e; font-weight: 700; margin-bottom: 10px;">📍 Atur Lokasi Anda (Otomatis)</h5>
+                            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
+                                Klik tombol di bawah ini agar sistem otomatis mencari alamat rumah Anda menggunakan GPS HP Anda.
+                            </p>
+                            <button type="button" id="btn-gps-auto" class="btn btn-success" style="font-weight: 800; padding: 12px 24px; border-radius: 50px; box-shadow: 0 4px 15px rgba(34,197,94,0.3); width: 100%; max-width: 300px;">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 8px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                DETEKSI LOKASI SAYA
+                            </button>
                         </div>
 
-                        <!-- Peta -->
                         <div id="selfMap" style="height: 380px; width:100%; border-radius:12px; border:1px solid var(--border-color); z-index:1;"></div>
 
-                        <textarea name="alamat" id="alamatDetailed" class="form-control mt-3" rows="2" required 
-                                  placeholder="Detail alamat lengkap (Jalan, RT/RW, Kelurahan...)" 
-                                  style="background: transparent; border: 1px solid var(--border-color); color: var(--text-color);">{{ $user->alamat }}</textarea>
+                        <textarea name="alamat" id="alamatDetailed" class="form-control mt-3" rows="2" placeholder="Tulis jalan/patokan rumah Anda (contoh: Depan masjid)..." required>{{ $user->alamat }}</textarea>
+                        <small class="text-muted d-block mt-1" style="font-size: 11px;">Alamat dan lokasi ini akan memudahkan kurir menjemput sampah Anda.</small>
+                    </div>
 
-                        <div class="mt-2 p-2" style="background: rgba(34,197,94,0.05); border-left:3px solid #22c55e; border-radius:6px;">
-                            <small style="color:var(--text-secondary); font-size:12px;">
-                                <strong>Tips:</strong> Gunakan tombol <strong>"Tarik Lokasi"</strong> dari Google Maps, atau klik tombol GPS, atau geser jarum merah secara manual di peta.
-                            </small>
+                    <!-- Keamanan Kartu Digital -->
+                    <div class="mb-4 p-3" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px;">
+                        <h6 style="color: #3b82f6; font-weight: 700; margin-bottom: 10px;">🛡️ Keamanan Kartu Digital</h6>
+                        <div class="form-check form-switch d-flex align-items-center gap-3">
+                            <input class="form-check-input" type="checkbox" name="card_2fa_enabled" id="card_2fa_enabled" value="1" {{ $user->card_2fa_enabled ? 'checked' : '' }} style="width: 40px; height: 20px; cursor: pointer;">
+                            <label class="form-check-label" for="card_2fa_enabled" style="color: var(--text-secondary); cursor: pointer; padding-top: 2px;">
+                                Aktifkan Verifikasi 2 Langkah (Wajib Masukkan Sandi saat melihat Kartu Digital)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <h5 style="font-weight:700; color:var(--text-primary); margin-top:2rem; margin-bottom:1rem; border-bottom: 2px solid var(--border-color); padding-bottom:10px;">Dokumen Pribadi</h5>
+                    <p class="text-muted small mb-4">Anda bisa memperbarui atau mengunggah dokumen Anda di sini (Format: JPG, PNG, PDF | Maks: 5MB per file). Kosongkan jika tidak ingin mengubah.</p>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" style="font-weight:600; color:var(--text-secondary);">File KTP</label>
+                            <input type="file" name="ktp" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                            @if($user->ktp_path)
+                                <div class="mt-2"><a href="{{ asset('storage/'.$user->ktp_path) }}" target="_blank" class="badge bg-primary text-decoration-none"><i class="bi bi-download me-1"></i> Lihat KTP</a></div>
+                            @endif
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" style="font-weight:600; color:var(--text-secondary);">File Kartu Keluarga (KK)</label>
+                            <input type="file" name="kk" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                            @if($user->kk_path)
+                                <div class="mt-2"><a href="{{ asset('storage/'.$user->kk_path) }}" target="_blank" class="badge bg-primary text-decoration-none"><i class="bi bi-download me-1"></i> Lihat KK</a></div>
+                            @endif
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" style="font-weight:600; color:var(--text-secondary);">File Ijazah Terakhir</label>
+                            <input type="file" name="ijazah" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                            @if($user->ijazah_path)
+                                <div class="mt-2"><a href="{{ asset('storage/'.$user->ijazah_path) }}" target="_blank" class="badge bg-primary text-decoration-none"><i class="bi bi-download me-1"></i> Lihat Ijazah</a></div>
+                            @endif
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" style="font-weight:600; color:var(--text-secondary);">File Curriculum Vitae (CV)</label>
+                            <input type="file" name="cv" class="form-control" accept=".pdf">
+                            @if($user->cv_path)
+                                <div class="mt-2"><a href="{{ asset('storage/'.$user->cv_path) }}" target="_blank" class="badge bg-primary text-decoration-none"><i class="bi bi-download me-1"></i> Lihat CV</a></div>
+                            @endif
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label" style="font-weight:600; color:var(--text-secondary);">Sertifikat / Penghargaan Lainnya</label>
+                            <input type="file" name="sertifikat" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                            @if($user->sertifikat_path)
+                                <div class="mt-2"><a href="{{ asset('storage/'.$user->sertifikat_path) }}" target="_blank" class="badge bg-primary text-decoration-none"><i class="bi bi-download me-1"></i> Lihat Sertifikat</a></div>
+                            @endif
                         </div>
                     </div>
 
@@ -185,23 +220,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // === GPS Button ===
-    const gpsBtn = document.createElement('button');
-    gpsBtn.type = 'button';
-    gpsBtn.className = 'btn btn-sm btn-outline-primary d-flex align-items-center gap-2 mt-2';
-    gpsBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Gunakan Lokasi Saya (GPS)`;
-    
-    document.getElementById('selfMap').parentNode.appendChild(gpsBtn);
-
-    gpsBtn.addEventListener('click', function () {
+    // === GPS Button (Simple) ===
+    document.getElementById('btn-gps-auto').addEventListener('click', function () {
         if (!navigator.geolocation) {
-            alert('Browser Anda tidak mendukung GPS.');
+            alert('Browser HP Anda tidak mendukung GPS. Silakan geser peta secara manual.');
             return;
         }
 
-        const originalText = gpsBtn.innerHTML;
-        gpsBtn.disabled = true;
-        gpsBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Mencari lokasi...`;
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Sedang Melacak...`;
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -209,61 +238,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 marker.setLatLng([latitude, longitude]);
                 map.setView([latitude, longitude], 18);
                 updateCoordinates(latitude, longitude);
-                gpsBtn.innerHTML = 'Lokasi Ditemukan!';
+                btn.innerHTML = '✅ LOKASI BERHASIL DITEMUKAN';
                 setTimeout(() => {
-                    gpsBtn.innerHTML = originalText;
-                    gpsBtn.disabled = false;
-                }, 2500);
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 3000);
             },
             (error) => {
-                alert('Gagal mendapatkan lokasi: ' + error.message);
-                gpsBtn.innerHTML = originalText;
-                gpsBtn.disabled = false;
+                alert('Gagal mendapatkan lokasi. Pastikan izin GPS / Lokasi di HP Anda sudah dinyalakan.');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             },
-            { enableHighAccuracy: true, timeout: 8000 }
+            { enableHighAccuracy: true, timeout: 10000 }
         );
-    });
-
-    // === Google Maps Link Parser (dengan error handling) ===
-    document.getElementById('btn-parse-gmaps').addEventListener('click', async function () {
-        const url = document.getElementById('gmapsLink').value.trim();
-        const btn = this;
-        const originalText = btn.innerHTML;
-
-        if (!url) {
-            alert('Silakan paste link Google Maps terlebih dahulu.');
-            return;
-        }
-
-        btn.disabled = true;
-        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Mengekstrak...`;
-
-        try {
-            const response = await fetch("{{ route('api.parse_gmaps') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ url: url })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                marker.setLatLng([data.lat, data.lng]);
-                map.setView([data.lat, data.lng], 18);
-                updateCoordinates(data.lat, data.lng);
-                alert('Lokasi berhasil diambil dari Google Maps!');
-            } else {
-                alert(data.message || 'Gagal mengekstrak koordinat. Pastikan link valid.');
-            }
-        } catch (error) {
-            alert('Terjadi kesalahan saat menghubungi server.');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
     });
 
     // Reset Map
@@ -277,17 +264,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Form Submit Validation
+    // Form Submit
     document.getElementById('profile-form').addEventListener('submit', function (e) {
-        const lat = parseFloat(document.getElementById('lat').value);
-        const lng = parseFloat(document.getElementById('lng').value);
-
-        if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-            e.preventDefault();
-            alert('Koordinat belum valid. Silakan pilih lokasi di peta terlebih dahulu.');
-            return false;
-        }
-
+        // Hapus validasi JS yang memblokir, biarkan saja tersimpan (latitude/longitude sudah nullable di controller)
         const submitBtn = document.getElementById('submit-btn');
         submitBtn.disabled = true;
         submitBtn.innerHTML = 'Menyimpan...';

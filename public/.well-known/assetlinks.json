@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "site.jostru.twa",
+    "sha256_cert_fingerprints": [
+      "B7:ED:CD:88:17:22:61:75:02:26:1C:AC:58:4A:A9:F5:DF:D8:EF:1E:A8:E1:D3:F1:98:ED:AC:7B:D2:A8:7B:FD"
+    ]
+  }
+}]

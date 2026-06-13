@@ -1,0 +1,29 @@
+
+   INFO  Running migrations.  
+
+  2026_04_24_180000_create_waste_deposits_table .................. 4.66ms FAIL
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'waste_deposits' already exists (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: u380603901_Jostru, SQL: create table `waste_deposits` (`id` bigint unsigned not null auto_increment primary key, `user_id` bigint unsigned not null, `type` varchar(255) not null, `weight` decimal(8, 2) not null, `description` text null, `status` varchar(255) not null default 'PENDING', `image_path` varchar(255) null, `created_at` timestamp null, `updated_at` timestamp null) default character set utf8mb4 collate 'utf8mb4_unicode_ci')
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:841
+    837▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    838▕                 ? UniqueConstraintViolationException::class
+    839▕                 : QueryException::class;
+    840▕ 
+  ➜ 841▕             $exception = new $exceptionType(
+    842▕                 $this->getNameWithReadWriteType(),
+    843▕                 $query,
+    844▕                 $this->prepareBindings($bindings),
+    845▕                 $e,
+
+      [2m+9 vendor frames [22m
+
+  10  database/migrations/2026_04_24_180000_create_waste_deposits_table.php:11
+      Illuminate\Support\Facades\Facade::__callStatic()
+      [2m+26 vendor frames [22m
+
+  37  artisan:16
+      Illuminate\Foundation\Application::handleCommand()
+

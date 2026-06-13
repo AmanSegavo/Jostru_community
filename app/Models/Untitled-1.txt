@@ -1,0 +1,4 @@
+# 
+
+public_path('feed') returns: /home/u380603901/domains/jostru.site/public_html/public/feed
+Path does not exist.

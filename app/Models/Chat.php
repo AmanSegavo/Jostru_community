@@ -14,7 +14,9 @@ class Chat extends Model
         'receiver_id',
         'message',
         'is_read',
-        'type'
+        'type',
+        'attachment_path',
+        'attachment_type'
     ];
 
     public function sender()

@@ -34,13 +34,19 @@ class AuthController extends Controller
 
             $user = Auth::user();
 
+            if ($user->status === 'NONAKTIF' || $user->status === 'BANNED') {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return back()->withErrors(['login_id' => 'Akun Anda dinonaktifkan oleh Admin.']);
+            }
+
             \App\Models\ActivityLog::create([
                 'user_id' => $user->id,
                 'action' => 'LOGIN',
                 'description' => 'Login berhasil dari IP: ' . $request->ip()
             ]);
 
-            // Tambahkan pengecekan superadmin di sini
             if ($user->role === 'admin' || $user->role === 'superadmin') {
                 return redirect()->intended('/admin/dashboard');
             }
@@ -66,14 +72,18 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
+        $seed = $request->email . uniqid();
+        $hash = strtoupper(substr(hash('sha256', $seed), 0, 8));
+        $memberId = 'JC-' . $hash;
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'member',
+            'status' => 'PENDING',
+            'member_id' => $memberId,
         ]);
-
-        Auth::login($user);
 
         \App\Models\ActivityLog::create([
             'user_id' => $user->id,
@@ -81,7 +91,20 @@ class AuthController extends Controller
             'description' => 'Pendaftaran anggota baru dari IP: ' . $request->ip()
         ]);
 
-        return redirect('/dashboard');
+        // Notify Admins
+        try {
+            $admins = User::whereIn('role', ['admin', 'superadmin'])->get();
+            foreach ($admins as $admin) {
+                \App\Models\Notification::create([
+                    'user_id' => $admin->id,
+                    'title'   => 'Pendaftar Baru',
+                    'message' => $user->name . ' mendaftar dan menunggu persetujuan (ACC).',
+                    'url'     => route('admin.members')
+                ]);
+            }
+        } catch (\Exception $e) {}
+
+        return redirect('/login')->with('success', 'Pendaftaran berhasil! Akun Anda sedang menunggu ACC dari Admin.');
     }
 
     public function profile()
@@ -95,10 +118,15 @@ class AuthController extends Controller
         $user = auth()->user();
 
         $rules = [
-            'alamat' => 'required|string',
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
-            'tanggal_lahir' => 'required|date',
+            'alamat' => 'nullable|string',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'tanggal_lahir' => 'nullable|date',
+            'ktp' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'kk' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'ijazah' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'cv' => 'nullable|file|mimes:pdf|max:5120',
+            'sertifikat' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ];
 
         if ($request->filled('password')) {
@@ -109,17 +137,26 @@ class AuthController extends Controller
 
         $data = [
             'alamat' => $request->alamat,
-            'latitude' => $request->latitude,
-            'longitude' => $request->longitude,
             'tanggal_lahir' => $request->tanggal_lahir,
+            'card_2fa_enabled' => $request->has('card_2fa_enabled') ? 1 : 0,
         ];
+
+        $files = ['ktp', 'kk', 'ijazah', 'cv', 'sertifikat'];
+        foreach ($files as $file) {
+            if ($request->hasFile($file)) {
+                $data[$file.'_path'] = $request->file($file)->store('onboarding_docs', 'public');
+            }
+        }
+
+        if ($request->filled('latitude')) $data['latitude'] = $request->latitude;
+        if ($request->filled('longitude')) $data['longitude'] = $request->longitude;
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
 
         $user->update($data);
-        return back()->with('success', 'Profil dan lokasi berhasil diperbarui!');
+        return redirect('/dashboard')->with('success', 'Profil dan lokasi berhasil diperbarui!');
     }
 
     public function updatePassword(Request $request)
@@ -200,17 +237,21 @@ class AuthController extends Controller
                     'role' => 'member',
                     'member_id' => 'JC-' . $hash,
                     'jabatan' => 'Anggota (Pendaftar Google)',
-                    'status' => 'AKTIF',
+                    'status' => 'PENDING',
                     'tanggal_lahir' => date('Y-m-d'),
                     'alamat' => '',
                 ]);
 
-                Auth::login($user);
                 \App\Models\ActivityLog::create([
                     'user_id' => $user->id,
                     'action' => 'REGISTER',
                     'description' => 'Pendaftaran otomatis via SSO Google dari IP: ' . request()->ip()
                 ]);
+            }
+
+            if ($user->status === 'NONAKTIF' || $user->status === 'BANNED') {
+                Auth::logout();
+                return redirect('/login')->withErrors(['login_id' => 'Akun Anda dinonaktifkan oleh Admin.']);
             }
 
             if ($user->role === 'admin' || $user->role === 'superadmin') {

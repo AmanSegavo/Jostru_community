@@ -1,0 +1,32 @@
+
+  Migration name .............................................. Batch / Status  
+  0001_01_01_000000_create_users_table ............................... [1] Ran  
+  0001_01_01_000001_create_cache_table ............................... [1] Ran  
+  0001_01_01_000002_create_jobs_table ................................ [1] Ran  
+  2026_04_04_162011_create_activity_logs_table ....................... [1] Ran  
+  2026_04_04_162011_create_membership_cards_table .................... [1] Ran  
+  2026_04_04_162012_create_finances_table ............................ [1] Ran  
+  2026_04_04_162012_create_posts_table ............................... [1] Ran  
+  2026_04_04_162013_create_contacts_table ............................ [1] Ran  
+  2026_04_04_162013_create_events_table .............................. [1] Ran  
+  2026_04_04_162013_create_likes_table ............................... [1] Ran  
+  2026_04_08_095200_add_status_and_jabatan_to_users_table ............ [1] Ran  
+  2026_04_08_100600_add_biodata_geolocation_to_users_table ........... [1] Ran  
+  2026_04_14_100000_alter_finances_table_for_cashflow ................ [1] Ran  
+  2026_04_14_110000_add_google_id_to_users_table ..................... [1] Ran  
+  2026_04_23_212822_add_kategori_to_finances_table ................... [2] Ran  
+  2026_04_24_180000_create_waste_deposits_table ...................... Pending  
+  2026_04_24_183000_add_chat_and_notif_to_users_table ................ Pending  
+  2026_05_07_155000_add_post_and_comment_permissions_to_users_table .. Pending  
+  2026_05_08_000001_add_cms_fields_to_posts_table .................... Pending  
+  2026_05_14_185705_create_oauth_auth_codes_table .................... Pending  
+  2026_05_14_185706_create_oauth_access_tokens_table ................. Pending  
+  2026_05_14_185707_create_oauth_refresh_tokens_table ................ Pending  
+  2026_05_14_185708_create_oauth_clients_table ....................... Pending  
+  2026_05_14_185709_create_oauth_device_codes_table .................. Pending  
+  2026_06_01_000000_create_system_settings_table ..................... [4] Ran  
+  2026_06_01_000001_create_waste_categories_table .................... [5] Ran  
+  2026_06_01_000002_alter_users_and_waste_deposits_tables ............ Pending  
+  2026_06_01_000003_create_erp_tables ................................ Pending  
+  2030_04_04_162012_create_comments_table ............................ [1] Ran  
+

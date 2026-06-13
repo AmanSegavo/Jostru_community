@@ -41,10 +41,25 @@
                     <div class="value" style="font-family: monospace; color: #4f46e5;">{{ $user->member_id }}</div>
                 </div>
                 <div class="row">
-                    <div class="label">Jabatan</div>
+                    <div class="label">Jabatan Utama</div>
                     <div class="value">{{ $user->jabatan ?? 'Anggota' }}</div>
                 </div>
-                <div class="row">
+
+                @if(isset($user->assignedDivisions) && $user->assignedDivisions->count() > 0)
+                <div class="row" style="margin-top: 1.5rem;">
+                    <div class="label">Penugasan & Divisi Tambahan</div>
+                    <div style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 8px;">
+                        @foreach($user->assignedDivisions as $div)
+                        <div style="background: rgba(79, 70, 229, 0.05); border: 1px solid rgba(79, 70, 229, 0.1); border-radius: 8px; padding: 10px;">
+                            <div style="font-size: 0.85rem; font-weight: 700; color: #4f46e5;">Divisi {{ $div->name }}</div>
+                            <div style="font-size: 0.8rem; color: #6b7280;">Sebagai: {{ $div->pivot->jabatan ?? 'Anggota' }}</div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                <div class="row" style="margin-top: 1rem;">
                     <div class="label">Status</div>
                     <div class="value" style="margin-top: 0.5rem;">
                         @if(($user->status ?? 'AKTIF') === 'AKTIF')

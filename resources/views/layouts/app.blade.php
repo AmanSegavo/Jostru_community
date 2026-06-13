@@ -4,12 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+
+    
     <title>@yield('title', 'Jostru Community')</title>
 
-    <!-- Fonts & Frameworks -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=3">
+    <!-- Preload Fonts & Frameworks -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Defer Bootstrap & Style.css to Prevent Render-Blocking -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"></noscript>
+    
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=5">
     <link rel="manifest" href="{{ asset('manifest.json') }}">
 
     <!-- Favicon (Pasti Muncul) -->
@@ -26,6 +35,20 @@
     <meta name="theme-color" content="#22c55e">
 
     <style>
+        /* NOTIFICATION DROPDOWN MOBILE FIX */
+        @media (max-width: 576px) {
+            .notif-dropdown-menu {
+                width: 95vw !important;
+                max-width: 95vw !important;
+                position: fixed !important;
+                top: 70px !important;
+                left: 2.5vw !important;
+                right: auto !important;
+                transform: none !important;
+                margin: 0 !important;
+            }
+        }
+        
         /* PENGATURAN WARNA MODE TERANG & GELAP */
         :root, [data-theme="light"] {
             --bg-color: #f8f9fa;
@@ -33,8 +56,11 @@
             --text-primary: #1f2937;
             --text-secondary: #6b7280;
             --border-color: rgba(0, 0, 0, 0.08);
-            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.5);
             --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+            --primary-accent: #22c55e;
+            --primary-accent-hover: #16a34a;
         }
 
         [data-theme="dark"] {
@@ -43,8 +69,11 @@
             --text-primary: #f9fafb;
             --text-secondary: #9ca3af;
             --border-color: rgba(255, 255, 255, 0.1);
-            --glass-bg: rgba(30, 30, 30, 0.85);
+            --glass-bg: rgba(30, 30, 30, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.05);
             --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --primary-accent: #22c55e;
+            --primary-accent-hover: #4ade80;
         }
 
         body {
@@ -60,8 +89,83 @@
             background: var(--glass-bg);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--glass-border);
             box-shadow: var(--glass-shadow);
+        }
+
+        /* Table Responsive Khusus Android/PC (Scrollable Tanpa Terpotong) */
+        .table-responsive-wrapper {
+            background: var(--surface-color);
+            border-radius: 16px;
+            padding: 1rem;
+            box-shadow: var(--glass-shadow);
+            border: 1px solid var(--border-color);
+            width: 100%;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+        .table-responsive {
+            display: block;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch; /* Supaya lancar di iOS/Android */
+            white-space: nowrap; /* Mencegah teks turun agar layout tabel rapi */
+        }
+        .table-responsive::-webkit-scrollbar {
+            height: 8px;
+        }
+        .table-responsive::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 4px;
+        }
+        .table-responsive table {
+            min-width: 800px; /* Minimal ukuran agar kolom tidak tergencet */
+            width: 100%;
+        }
+
+        /* Elemen Kustom Global Premium */
+        .card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: var(--glass-shadow);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn {
+            border-radius: 50px;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-accent), var(--primary-accent-hover));
+            border: none;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
+        }
+        .form-control, .form-select {
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+            border-color: var(--primary-accent);
+        }
+
+        /* Animations */
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(34, 197, 94, 0.15);
         }
 
         .text-muted {
@@ -76,6 +180,8 @@
             margin-top: 15px; 
             padding: 0.6rem 1rem;
             transition: all 0.3s ease;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
         }
 
         .nav-btn {
@@ -83,6 +189,7 @@
             padding: 0.4rem 1.2rem;
             font-weight: 600;
             font-size: 0.9rem;
+            transition: all 0.3s ease;
         }
 
         .theme-toggle-btn {
@@ -107,10 +214,48 @@
             border-top: 1px solid var(--border-color);
             transition: background-color 0.3s ease;
             z-index: 1030;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            padding-bottom: env(safe-area-inset-bottom);
         }
-        .bottom-nav-item { color: var(--text-secondary); }
-        .bottom-nav-item.active { color: #22c55e; }
-        .bottom-nav-item:hover { color: #10b981; }
+        .bottom-nav-item { color: var(--text-secondary); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .bottom-nav-item.active { color: var(--primary-accent); }
+        .bottom-nav-item:active { transform: scale(0.9); }
+        
+        /* Page Transition Loader */
+        .page-transition-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--bg-color);
+            z-index: 999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .page-transition-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .loader-spinner {
+            width: 48px;
+            height: 48px;
+            border: 5px solid rgba(34, 197, 94, 0.2);
+            border-top-color: var(--primary-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Sembunyikan elemen download aplikasi jika sedang dibuka dalam Aplikasi Android (TWA) atau PWA */
+        @media (display-mode: standalone) {
+            #mobile-app-promo-section,
+            .android-download-btn {
+                display: none !important;
+            }
+        }
     </style>
 
     <!-- Script Swipe Layar Global -->
@@ -168,7 +313,17 @@
         // Service Worker & Theme Initializer
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(()=>{});
+                navigator.serviceWorker.register('/sw.js').then(reg => {
+                    reg.onupdatefound = () => {
+                        const installingWorker = reg.installing;
+                        installingWorker.onstatechange = () => {
+                            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // Versi baru ditemukan di sw.js, langsung otomatis reload halaman!
+                                window.location.reload(true);
+                            }
+                        };
+                    };
+                }).catch(()=>{});
             });
         }
 
@@ -181,13 +336,43 @@
         document.addEventListener('DOMContentLoaded', () => {
             document.body.setAttribute('data-theme', storedTheme);
             updateThemeIcon(storedTheme);
+            
+            // Hide page loader
+            setTimeout(() => {
+                const loader = document.getElementById('pageLoader');
+                if(loader) {
+                    loader.classList.add('hidden');
+                    setTimeout(() => { loader.style.display = 'none'; }, 600);
+                }
+            }, 150);
+        });
+        
+        // Show loader on page leave
+        window.addEventListener('beforeunload', () => {
+            const loader = document.getElementById('pageLoader');
+            if(loader) {
+                loader.style.display = 'flex';
+                loader.classList.remove('hidden');
+            }
         });
     </script>
+    @stack('styles')
 </head>
 <body>
+    @if(session()->has('impersonator_id'))
+    <div style="background-color: #ef4444; color: white; text-align: center; padding: 10px; font-weight: bold; position: fixed; top: 0; width: 100%; z-index: 999999; box-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+        👁️ Anda sedang dalam Mode Pratinjau sebagai {{ auth()->user()->name }}. Data bersifat sensitif. 
+        <a href="{{ route('impersonate.leave') }}" style="color: white; text-decoration: underline; margin-left: 10px; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 4px;">Kembali ke Admin</a>
+    </div>
+    @endif
+
+    <!-- Page Loader -->
+    <div id="pageLoader" class="page-transition-overlay">
+        <div class="loader-spinner"></div>
+    </div>
 
     <!-- Navbar Floating -->
-    <nav class="navbar fixed-top mx-auto glass navbar-floating">
+    <nav class="navbar fixed-top mx-auto glass navbar-floating" style="{{ session()->has('impersonator_id') ? 'top: 40px;' : '' }}">
         <div class="container-fluid px-2">
             <!-- LOGO ICON DAN TEKS SELALU MUNCUL -->
             <a class="navbar-brand fw-bold m-0 d-flex align-items-center gap-2" href="{{ url('/') }}">
@@ -197,7 +382,80 @@
                 </span>
             </a>
             
+            <!-- Tampilan Desktop Nav -->
+            <div class="d-none d-lg-flex align-items-center gap-4 fw-semibold" style="font-size: 0.95rem;">
+                @guest
+                    <a href="{{ url('/#visi-misi') }}" class="text-decoration-none" style="color: var(--text-primary);">Tentang Kami</a>
+                    <a href="{{ url('/#tentang') }}" class="text-decoration-none" style="color: var(--text-primary);">Program</a>
+                    <a href="{{ url('/#galeri') }}" class="text-decoration-none" style="color: var(--text-primary);">Galeri</a>
+                    <a href="{{ url('/#kontak') }}" class="text-decoration-none" style="color: var(--text-primary);">Kontak & FAQ</a>
+                @else
+                    @if(auth()->user()->status === 'PENDING')
+                        <span class="px-3 py-1 rounded-pill" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1);">⏳ Menunggu Verifikasi</span>
+                    @else
+                        @if(in_array(auth()->user()->role, ['admin', 'superadmin']))
+                            <a href="{{ route('admin.dashboard') }}" class="text-decoration-none px-3 py-1 rounded-pill" style="color: var(--primary-accent); background: rgba(34, 197, 94, 0.1);">💻 Panel Admin</a>
+                        @endif
+                        <a href="{{ route('dashboard') }}" class="text-decoration-none {{ request()->routeIs('dashboard') ? 'border-bottom border-success border-2' : '' }}" style="color: var(--text-primary); padding-bottom: 2px;">Beranda</a>
+                        <a href="{{ route('member.waste_report') }}" class="text-decoration-none {{ request()->routeIs('member.waste_report*') ? 'border-bottom border-success border-2' : '' }}" style="color: var(--text-primary); padding-bottom: 2px;">Setor</a>
+                        <a href="{{ route('member.feed') }}" class="text-decoration-none {{ request()->routeIs('member.feed*') ? 'border-bottom border-success border-2' : '' }}" style="color: var(--text-primary); padding-bottom: 2px;">Feed</a>
+                        <a href="{{ route('member.chat.list') }}" class="text-decoration-none {{ request()->routeIs('member.chat*') ? 'border-bottom border-success border-2' : '' }}" style="color: var(--text-primary); padding-bottom: 2px;">Chat</a>
+                    @endif
+                @endguest
+            </div>
+            
+            <!-- Mobile Menu Toggler -->
+            <button class="d-lg-none btn btn-link text-decoration-none ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#mobileNav" style="color: var(--text-primary);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            
             <div class="d-flex align-items-center gap-2 gap-md-3">
+                @auth
+                    @php
+                        $unreadNotifications = \App\Models\Notification::where('user_id', auth()->id())->where('is_read', false)->latest()->get();
+                    @endphp
+                    <div class="dropdown">
+                        <button class="btn btn-link text-decoration-none p-0 position-relative" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--text-primary);">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                            @if($unreadNotifications->count() > 0)
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                                    {{ $unreadNotifications->count() }}
+                                </span>
+                            @endif
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow notif-dropdown-menu" aria-labelledby="notifDropdown" style="width: 320px; max-height: 400px; overflow-y: auto; border-radius: 16px; border: 1px solid var(--border-color); background: var(--surface-color);">
+                            <li class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold">Notifikasi</h6>
+                                @if($unreadNotifications->count() > 0)
+                                <form action="{{ route('notifications.read_all') }}" method="POST" class="m-0">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-link text-success p-0 text-decoration-none">Tandai dibaca</button>
+                                </form>
+                                @endif
+                            </li>
+                            @forelse($unreadNotifications as $notif)
+                                <li>
+                                    <form action="{{ route('notifications.read', $notif->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item py-3 border-bottom" style="white-space: normal;">
+                                            <div class="fw-bold" style="font-size: 0.9rem;">{{ $notif->title }}</div>
+                                            <div class="text-muted" style="font-size: 0.8rem;">{{ $notif->message }}</div>
+                                            <small class="text-muted" style="font-size: 0.7rem;">{{ $notif->created_at->diffForHumans() }}</small>
+                                        </button>
+                                    </form>
+                                </li>
+                            @empty
+                                <li>
+                                    <div class="p-4 text-center text-muted">
+                                        <div class="fs-4 mb-2">📭</div>
+                                        Tidak ada notifikasi baru
+                                    </div>
+                                </li>
+                            @endforelse
+                        </ul>
+                    </div>
+                @endauth
+
                 <button onclick="toggleTheme()" class="theme-toggle-btn" aria-label="Ganti Tema">
                     <span id="theme-icon" style="font-size: 1.1rem; line-height: 1;">☀️</span>
                 </button>
@@ -234,6 +492,30 @@
                     </div>
                 @endguest
             </div>
+            
+            <!-- Mobile Menu Panel -->
+            <div class="collapse w-100 mt-3 d-lg-none" id="mobileNav">
+                <div class="d-flex flex-column gap-3 p-3 glass" style="border-radius: 12px;">
+                    @guest
+                        <a href="{{ url('/#visi-misi') }}" class="text-decoration-none fw-semibold" style="color: var(--text-primary);">Tentang Kami</a>
+                        <a href="{{ url('/#tentang') }}" class="text-decoration-none fw-semibold" style="color: var(--text-primary);">Program</a>
+                        <a href="{{ url('/#galeri') }}" class="text-decoration-none fw-semibold" style="color: var(--text-primary);">Galeri</a>
+                        <a href="{{ url('/#kontak') }}" class="text-decoration-none fw-semibold" style="color: var(--text-primary);">Kontak & FAQ</a>
+                    @else
+                        @if(auth()->user()->status === 'PENDING')
+                            <span class="text-decoration-none fw-semibold p-2 rounded text-center" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1);">⏳ Menunggu Verifikasi Admin</span>
+                        @else
+                            @if(in_array(auth()->user()->role, ['admin', 'superadmin']))
+                                <a href="{{ route('admin.dashboard') }}" class="text-decoration-none fw-semibold p-2 rounded" style="color: var(--primary-accent); background: rgba(34, 197, 94, 0.1);">💻 Panel Admin</a>
+                            @endif
+                            <a href="{{ route('dashboard') }}" class="text-decoration-none fw-semibold {{ request()->routeIs('dashboard') ? 'text-success' : '' }}" style="color: var(--text-primary);">🏠 Beranda</a>
+                            <a href="{{ route('member.waste_report') }}" class="text-decoration-none fw-semibold {{ request()->routeIs('member.waste_report*') ? 'text-success' : '' }}" style="color: var(--text-primary);">♻️ Setor Limbah</a>
+                            <a href="{{ route('member.feed') }}" class="text-decoration-none fw-semibold {{ request()->routeIs('member.feed*') ? 'text-success' : '' }}" style="color: var(--text-primary);">📰 Feed Komunitas</a>
+                            <a href="{{ route('member.profile') }}" class="text-decoration-none fw-semibold {{ request()->routeIs('member.profile*') ? 'text-success' : '' }}" style="color: var(--text-primary);">👤 Profil Saya</a>
+                        @endif
+                    @endguest
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -254,6 +536,7 @@
 
     <!-- Mobile Bottom Navigation -->
     @auth
+    @if(!request()->is('admin*') && auth()->user()->status !== 'PENDING')
     <nav class="bottom-nav d-md-none fixed-bottom" style="top: auto;">
         <div class="bottom-nav-container d-flex justify-content-around py-2">
             <a href="{{ route('dashboard') }}" class="bottom-nav-item text-center text-decoration-none {{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -278,9 +561,10 @@
             </a>
         </div>
     </nav>
+    @endif
     @endauth
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
     
     <script>
         function toggleTheme() {

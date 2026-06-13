@@ -5,6 +5,11 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 style="font-weight:800;">Activity Log</h2>
+<div class="mt-2 mb-3"><a href="{{ route('admin.logs.export') }}" class="btn hover-lift" style="background:rgba(34,197,94,0.1); color:var(--primary-accent); border:1px solid rgba(34,197,94,0.3); padding:0.5rem 1rem; border-radius:12px; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; gap:5px; font-weight:600;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+    Export CSV
+</a></div>
+
             <p class="text-muted mb-0">Riwayat aktivitas admin dan anggota.</p>
         </div>
     </div>

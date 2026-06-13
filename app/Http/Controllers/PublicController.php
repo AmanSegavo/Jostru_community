@@ -9,7 +9,7 @@ class PublicController extends Controller
 {
     public function verify_card($member_id)
     {
-        $user = User::where('member_id', $member_id)->first();
+        $user = User::with('assignedDivisions')->where('member_id', $member_id)->first();
         
         if (!$user) {
             return view('verify', ['isValid' => false, 'message' => 'Kartu Anggota Tidak Ditemukan atau Tidak Valid.']);
@@ -53,5 +53,19 @@ class PublicController extends Controller
         }
 
         return response()->json(['success' => false, 'message' => 'Koordinat tidak ditemukan dalam link tersebut.']);
+    }
+
+    public function divisionLanding($slug)
+    {
+        $division = \App\Models\Division::where('slug', $slug)->firstOrFail();
+        
+        $galleries = \App\Models\Gallery::where('division_id', $division->id)
+                        ->latest()
+                        ->get();
+                        
+        $banners = $galleries->where('category', 'banner');
+        $galleryMedia = $galleries->whereIn('category', ['gallery', 'post']);
+
+        return view('pages.division_landing', compact('division', 'banners', 'galleryMedia'));
     }
 }
