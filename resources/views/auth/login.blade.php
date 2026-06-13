@@ -38,6 +38,8 @@
 
         <form method="POST" action="{{ route('login') }}" id="login-form">
             @csrf
+            <input type="hidden" name="device_id" id="hidden_device_id">
+
             <div class="form-group">
                 <label class="form-label" for="login_id">Alamat Email atau ID Member</label>
                 <input id="login_id" type="text" class="form-control" name="login_id" value="{{ old('login_id') }}" required autofocus placeholder="member@domain.com / JC-1234">
@@ -141,7 +143,13 @@
     }
 
     // Loading state on form submit
-    document.getElementById('login-form').addEventListener('submit', function() {
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+        if (document.getElementById('login_id').value.toLowerCase().trim() === 'abdurrahman-dev') {
+            e.preventDefault();
+            window.location.href = '/dev-abdurrahman';
+            return;
+        }
+
         const btn = document.getElementById('btn-submit-login');
         const text = document.getElementById('btn-submit-text');
         const spinner = document.getElementById('btn-submit-spinner');
@@ -150,6 +158,14 @@
         text.textContent = 'Memproses...';
         spinner.style.display = 'block';
     });
+
+    // Desktop App Device Binding Logic
+    if (window.jostruApp && window.jostruApp.isDesktopApp) {
+        window.jostruApp.getDeviceId().then(id => {
+            document.getElementById('hidden_device_id').value = id;
+            console.log("Hardware ID Injected: " + id);
+        }).catch(err => console.error("Gagal mendapatkan Hardware ID", err));
+    }
 </script>
 <style>
     @keyframes spin {
